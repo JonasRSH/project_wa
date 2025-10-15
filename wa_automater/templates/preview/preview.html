@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Custom styles for A4 size */
+        .wa-preview-container {
+            width: 794px; /* A4 width in pixels */
+            height: 1123px; /* A4 height in pixels */
+            overflow: auto; /* Add scroll if content overflows */
+            margin: 0 auto; /* Center the container */
+        }
+    </style>
+    <title>WA Vorschau</title>
+</head>
+
+<body>
+    <header>
+    </header>
+    <main>
+        <div class="wa-preview-container">
+            {{ data|safe }}
+        </div>
+    </main>
+</body>
+</html>

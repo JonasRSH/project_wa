@@ -1,0 +1,230 @@
+
+
+.form-side-container {
+    min-width: 420px;
+    max-width: 540px;
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.wa-form-container {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.07);
+    padding: 20px;
+    width: 100%;
+}
+
+.wa-preview-container {
+    min-width: 827px; /* Breite für A4 */
+    width:fit-content;
+    min-height: 1169px;
+    height: fit-content;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 20px;
+    overflow: scroll;
+    page-break-after: always;
+}
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    position: absolute;
+    top: 0;
+    width: 100%;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 20px;
+}
+
+h1, h2 {
+    color: #003366;
+    text-align: center;
+    margin: 20px;
+}
+
+.form-container {
+    width: 30%;
+    margin: 20px;
+    gap: 20px;
+    position: static;
+    
+}
+
+
+
+.a4-size {
+    min-width: 210mm;
+    min-height: 297mm;
+    height: 100%;
+    width: 100%;
+   
+  
+}
+
+.customs-offices {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    align-content: normal;
+}
+
+.customs-offices label {
+    padding: 0px 10px;
+}
+
+
+.late_arrival_checkbox {
+    margin: 20px 0;    
+}
+
+input,
+input[type="date"],
+select,
+input[type="file"],
+button {
+    width: 80%;
+    margin: 10px 0;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button {
+    background-color: #003366;
+    color: white;
+    margin: 10px 0;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+}
+
+button:hover {
+    background-color: #002244;
+    color: yellow;
+}
+
+#generate_wa button {
+    width: 100%;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    width: 100%;
+}
+
+ul li {
+    background-color: #e0e0e0;
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+hr {
+    background-color: #003366;
+    border: none;
+    height: 2px;
+    border-radius: 5px;
+}
+
+#dropZone {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    color: #999;
+}
+
+label {
+    width: 100%;
+    font-weight: bold;
+}
+
+.custom-navbar {
+    font-size: 0.95rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    min-height: 40px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1050;
+}
+
+/* Navbar-Menüeinträge immer ganz rechts */
+.custom-navbar .navbar-collapse {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+.custom-navbar .navbar-nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    width: 100%;
+    align-items: center;
+}
+
+
+.wa-preview-container table tr {
+    height: 18px;
+    padding: 0;
+}
+.wa-preview-container table td, 
+.wa-preview-container table th {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 0.95em;
+}
+
+
+
+/* Media Queries für verschiedene Bildschirmgrößen */
+@media (min-width: 600px) {
+    .form-container {
+        flex: 1 1 30%;
+    }
+}
+
+@media (min-width: 900px) {
+    .articles-container {
+        max-width: 900px;
+    }
+}
+
+@media print {
+    .wa-preview-container {
+        width: 100%;
+        height: auto;
+        box-shadow: none;
+        border: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .wa-preview-container {
+        min-width: 100%; 
+        min-height: auto; 
+    }
+}

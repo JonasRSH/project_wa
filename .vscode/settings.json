@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./Python_Back_End/loading_list_check"
+    ]
+}

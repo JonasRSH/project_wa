@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}WA Generator 1.0 | Admin{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name">
+    <a href="/main/" style="color:inherit;text-decoration:none;">
+      WA Generator 1.0
+    </a>
+  </h1>
+{% endblock %}
+
+{% block nav-global %}
+  <div style="margin-bottom:10px;">
+    <a href="/main/" class="btn btn-outline-primary btn-sm">Zur Hauptanwendung</a>
+  </div>
+  {{ block.super }}
+{% endblock %}
