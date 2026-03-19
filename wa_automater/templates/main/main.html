@@ -1,91 +1,89 @@
-<!DOCTYPE html>
+{% extends 'base.html' %}
+{% load static %}
 
-<html lang="en">
+{% block extra_js %}
+<!-- Calendar and Excel Preview Script -->
+<script>
+    document.getElementById('datePicker').valueAsDate = new Date();
+    
+    // Bootstrap Form Validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            var forms = document.getElementsByClassName('needs-validation');
+            // Loop over them and prevent submission
+            var validation = Array.prototype.filter.call(forms, function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+    
+    // Custom validation for file inputs
+    document.getElementById('dateien').addEventListener('change', function(e) {
+        var files = e.target.files;
+        if (files.length === 0) {
+            e.target.setCustomValidity('Bitte wählen Sie mindestens eine Transitdokument-Datei aus.');
+        } else {
+            e.target.setCustomValidity('');
+        }
+    });
+    
+    document.querySelector('input[name="abmeldeliste_pdf"]').addEventListener('change', function(e) {
+        var files = e.target.files;
+        if (files.length === 0) {
+            e.target.setCustomValidity('Bitte wählen Sie eine Abmeldeliste (PDF) aus.');
+        } else {
+            e.target.setCustomValidity('');
+        }
+    });
+</script>
+{% endblock %}
 
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{% static 'vendor/open-iconic/open-iconic-bootstrap.min.css' %}" />
-    <link rel="stylesheet" type="text/css" href="{% static 'main/style.css' %}">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <title>WA Generator 1.0</title>
-</head>
-
-<body>
-    <!-- Menüleiste oben -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3 custom-navbar">
-        <h1>WA Generator 1.0</h1>
-        <div class="collapse navbar-collapse justify-content-end">
-            <ul class="navbar-nav align-items-center">
-                <li class="nav-item mr-3">
-                    <a class="nav-link" href="{% url 'settings' %}">
-                        <span class="oi oi-cog"></span> Einstellungen
-                    </a>
-                </li>
-                {% if user.is_staff %}
-                <li class="nav-item mr-3">
-                    <a class="nav-link" href="/admin/">
-                        <span class="oi oi-lock-locked"></span> Admin
-                    </a>
-                </li>
-                {% endif %}
-                {% if user.is_authenticated %}
-                <li class="nav-item mr-3">
-                    <a class="nav-link font-weight-bold text-success" href="#" tabindex="-1" aria-disabled="true" style="pointer-events:none;">
-                        <i class="bi bi-person-circle" style="font-size: 1.0rem; color: darkgreen; margin-right: 6px;"></i>
-                        {{ user.username }}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    {% if user.is_authenticated %}
-                    <a class="nav-link" href="{% url 'logout' %}">
-                        <span class="oi oi-account-logout"></span> Logout
-                    </a>
-                    {% endif %}
-                </li>
-                {% else %}
-                <li class="nav-item">
-                    <a class="nav-link d-flex align-items-center" href="{% url 'login' %}">
-                        <i class="bi bi-person-circle" style="font-size: 1.5rem; margin-right: 6px;"></i>
-                        <span class="d-none d-md-inline">LOGIN</span>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </div>
-    </nav>
-
-    <main>
+{% block content %}
         <div class="container-fluid">
             <div class="row">
                 <div class="col-md-6">
                     <div class="wa-preview-container w-100">
-                        <form method="post" enctype="multipart/form-data" style="margin-top: 2em;">
+                        <form method="post" enctype="multipart/form-data" style="margin-top: 2em;" class="needs-validation" novalidate>
                             {% csrf_token %}
                             <label class="w-100 mb-2">Datum
-                                <input type="date" id="datePicker" name="datum" class="form-control form-control-lg w-100">
+                                <input type="date" id="datePicker" name="datum" class="form-control w-100" required>
+                                <div class="invalid-feedback">
+                                    Bitte wählen Sie ein Datum aus.
+                                </div>
                             </label>
                             <div class="customs-offices row mb-2">
                                 <div class="col-6">
                                     <label class="w-100">Zollamt Abgang
-                                        <select id="customs_office_departure" name="zollamt_abgang" class="form-control form-control-lg w-100">
+                                        <select id="customs_office_departure" name="zollamt_abgang" class="form-control w-100" required>
                                             <option value="" selected disabled>Zollamt wählen...</option>
                                             {% for zollamt in zollamt_abgang %}
                                                 <option value="{{ zollamt.id }}">{{ zollamt.name }}</option>
                                             {% endfor %}
                                         </select>
+                                        <div class="invalid-feedback">
+                                            Bitte wählen Sie ein Zollamt Abgang aus.
+                                        </div>
                                     </label>
                                 </div>
                                 <div class="col-6">
                                     <label class="w-100">Zollamt Grenzübertritt
-                                        <select id="customs_office_border" name="zollamt_grenz" class="form-control form-control-lg w-100">
+                                        <select id="customs_office_border" name="zollamt_grenz" class="form-control w-100" required>
                                             <option value="" selected disabled>Zollamt wählen...</option>
                                             {% for zollamt in zollamt_grenz %}
                                                 <option value="{{ zollamt.id }}">{{ zollamt.name }}</option>
                                             {% endfor %}
                                         </select>
+                                        <div class="invalid-feedback">
+                                            Bitte wählen Sie ein Zollamt Grenzübertritt aus.
+                                        </div>
                                     </label>
                                 </div>
                             </div>
@@ -96,18 +94,24 @@
                                 </label>
                             </div>
                             <label class="w-100">Abfahrt wählen:
-                                <select name="abfahrt_id" id="abfahrt_id_select" size="1" class="form-control form-control-lg w-100 mb-2">
+                                <select name="abfahrt_id" id="abfahrt_id_select" size="1" class="form-control w-100 mb-2" required>
                                     <option value="" selected disabled>Abfahrt wählen...</option>
                                     {% for abfahrt in abfahrten %}
                                         <option value="{{ abfahrt.id }}">{{ abfahrt.name }} ({{ abfahrt.kennzeichen }})</option>
                                     {% endfor %}
                                 </select>
+                                <div class="invalid-feedback">
+                                    Bitte wählen Sie eine Abfahrt aus.
+                                </div>
                             </label>
                             <!-- DropZone für Transitdokumente -->
                             <label class="w-100 mb-2">Upload Warendurchfuhr / Transitdokumente:
                                 <div id="dropZone" class="mb-2" style="border:2px dashed #ccc; padding:20px; text-align:center; color:#999;">
                                     <label class="w-100">Transitdokumente auswählen:
-                                        <input id="dateien" name="files[]" type="file" multiple class="form-control w-100">
+                                        <input id="dateien" name="files[]" type="file" multiple class="form-control w-100" required>
+                                        <div class="invalid-feedback">
+                                            Bitte wählen Sie mindestens eine Transitdokument-Datei aus.
+                                        </div>
                                         <p>oder Dateien zum Upload hierher ziehen.</p>
                                     </label>
                                     <ul id="dateiListe"></ul>
@@ -119,6 +123,9 @@
                                 <div class="mb-2" style="border:2px dashed #ccc; padding:20px; text-align:center; color:#999;">
                                     <label class="w-100">Abmeldeliste (PDF) auswählen:
                                         <input type="file" name="abmeldeliste_pdf" accept="application/pdf" class="form-control w-100" required>
+                                        <div class="invalid-feedback">
+                                            Bitte wählen Sie eine Abmeldeliste (PDF) aus.
+                                        </div>
                                         <p>oder Datei zum Upload hierher ziehen.</p>
                                     </label>
                                 </div>
@@ -136,48 +143,6 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-<!-- Modal für LKW-Verwaltung (Einstellungen) -->
-<div id="abfahrtModal" class="modal" tabindex="-1" role="dialog" style="display:none; background:rgba(0,0,0,0.3); position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:1050;">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">LKW verwalten</h5>
-                <button type="button" class="close" onclick="closeAbfahrtModal()" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <form id="addAbfahrtForm" method="post" action="" class="mb-3">
-                    {% csrf_token %}
-                    <div class="form-group mb-2">
-                        <input type="text" name="abfahrt_name" placeholder="Abfahrt" class="form-control form-control-sm mb-2 w-100" required>
-                    </div>
-                    <div class="form-group mb-2">
-                        <input type="text" name="abfahrt_kennzeichen" placeholder="Kennzeichen Motorwagen" class="form-control form-control-sm mb-2 w-100" required>
-                    </div>
-                    <div class="form-group mb-2">
-                        <input type="text" name="abfahrt_anhaenger" placeholder="Kennzeichen Anhänger (optional)" class="form-control form-control-sm mb-2 w-100">
-                    </div>
-                    <button type="submit" name="action" value="add_abfahrt" class="btn btn-success btn-sm w-100 mb-2">Hinzufügen</button>
-                </form>
-                <form id="deleteAbfahrtForm" method="post" action="" class="mb-3">
-                    {% csrf_token %}
-                    <div class="form-group mb-2">
-                        <label for="delete_abfahrt_id_modal">Welche Abfahrt soll gelöscht werden?</label>
-                        <select name="delete_abfahrt_id" id="delete_abfahrt_id_modal" class="form-control form-control-sm w-100" required>
-                            {% for abfahrt in abfahrten %}
-                                <option value="{{ abfahrt.id }}">{{ abfahrt.name }} ({{ abfahrt.kennzeichen }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" name="action" value="delete_abfahrt" class="btn btn-danger btn-sm w-100">Löschen</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-<script>
-</script>
-</script>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -203,17 +168,4 @@
                 </div>
             </div>
         </div>
-    </main>
-
-
-<!-- Calendar and Excel Preview Script -->
-<script>
-    document.getElementById('datePicker').valueAsDate = new Date();
-</script>
-
-
-<!-- Documents Upload Script -->
-<script src="{% static 'main/upload.js' %}"></script>
-
-</body>
-</html>
+{% endblock %}

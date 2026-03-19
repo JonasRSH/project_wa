@@ -21,14 +21,14 @@ Der Warenausweis enthält oben das Datum des Abfertigungstages, den Grenzüberga
 Die Transitdokumente werden sortiert dargestellt:
 - Oben: Durchgehende Transitdokumente, die bis ins Empfangsland ausgestellt sind
 - Angabe der Abgangszollstelle und Vermerk: "DE Zoll A-Nummer siehe Position a-z"
-- Unten: Transitdokumente, die an der Grenze erledigt werden, zu Sendungen, die direkt an der Grenze einfuhrverzollt werden
+- Unten: Transitdokumente, die an der Grenze erledigt werden, für Sendungen, welche an der Grenze einfuhrverzollt    werden
 
 ## Benötigte Software
 
 - Python 3
 - Django
 - Beliebiger Webbrowser
-- Abhängigkeiten: PyPDF2, pandas, openpyxl
+- Abhängigkeiten: PyPDF2, pandas, openpyxl, re
 
 ## Installation
 
@@ -120,7 +120,7 @@ server {
 
 - Über die Weboberfläche können relevante Daten eingegeben und Dokumente hochgeladen werden.
 - Mit Klick auf „WA Generieren“ wird der Warenausweis erstellt und als Tabelle angezeigt.
-- Nach Prüfung kann die Excel-Datei über „Excel herunterladen“ gespeichert werden.
+- Nach Prüfung kann die Excel-Datei über „Excel herunterladen“ (noch nicht programmiert) gespeichert werden.
 
 ## Hinweise
 
@@ -130,7 +130,7 @@ server {
 ## Administration
 
 Es existiert ein für Testzwecke angelegter Administrator:
-- User: admin
-- Passwort: jh$14894
+- User: test_user
+- Passwort: tekTef-4tonqu-fukmud
 
 Dieser muss bei Installation aus Sicherheitsgründen gelöscht und ein neuer User mit sicherem Passwort eingerichtet werden.

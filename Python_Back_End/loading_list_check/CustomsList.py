@@ -125,7 +125,7 @@ class Shipment():
             customs_handling = []
             customs_handling.append(handling_matches.group(1,2,3,4))
         else:
-            customs_handling = ['! No customs handling noted ! Please verify...']
+            customs_handling = ['! No customs handling ! Please verify...']
         return customs_handling
     
     # Return True if the shipment is valid (not 'ZK'), False otherwise
@@ -133,7 +133,7 @@ class Shipment():
     def is_valid_shipment(colli_type):
         return colli_type != 'ZK'
     
-    # Calculates them summe of all Colli
+    # Calculates them sum of all Collies
     @staticmethod
     def calculate_total_collies(shipment_list):
         total_collies = sum(shipment.colli_no for shipment in shipment_list)
@@ -144,7 +144,7 @@ class Shipment():
         total_weight = sum(shipment.weight for shipment in shipment_list)
         return total_weight
 
-    # Creates a shipment with the from the staticmethods extracted informations of the PDF data
+    # Creates a shipment with the from the PDF extracted data
     @classmethod
     def create_shipment(cls, pdf_path):
         shipment_data = cls.read_pdf_data(pdf_path)
@@ -250,7 +250,7 @@ def main():
         if shipment_list:
             shipment_list[0].shipment_list = shipment_list
             shipment_list[0].create_excel()
-    print(f'Summe of Collies: {Shipment.calculate_total_collies(shipment_list)} and Weight: {Shipment.calculate_total_weight(shipment_list)}')
+    print(f'Total Collies: {Shipment.calculate_total_collies(shipment_list)} Total Weight: {Shipment.calculate_total_weight(shipment_list)}')
     
 
 if __name__ == "__main__":
