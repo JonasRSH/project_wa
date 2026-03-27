@@ -18,6 +18,7 @@ def main(request):
     data = None
     summary = None
     error_message = None
+    report = None
     
     # Nur benutzerspezifische Daten anzeigen (oder alle für Superuser)
     if request.user.is_superuser:
@@ -53,6 +54,7 @@ def main(request):
                     return render(request, 'main/main.html', {
                         'data': data,
                         'summary': summary,
+                        'report': report,
                         'error_message': error_message,
                         'abfahrten': abfahrten,
                     })
@@ -60,6 +62,21 @@ def main(request):
                 if os.path.exists(temp_path):
                     shipment_list = Shipment.create_shipment(temp_path)
                     if shipment_list:
+                        report_lines = []
+                        for shipment in shipment_list:
+                            customs_text = ' '.join(str(x) for x in shipment.customs_handling)
+                            if 'No customs handling' in customs_text:
+                                line_no = str(shipment.position).strip() or '-'
+                                shipment_no = str(shipment.shipment_no).strip() or '-'
+                                report_lines.append(
+                                    f'Missing customs handling in Line No. {line_no} shipment no. {shipment_no}'
+                                )
+
+                        if report_lines:
+                            report = '\n'.join(report_lines)
+                        else:
+                            report = 'No customs handling issues found.'
+
                         shipment_list[0].shipment_list = shipment_list
                         # Excel schreiben
                         shipment_list[0].create_excel(
@@ -97,6 +114,7 @@ def main(request):
     return render(request, 'main/main.html', {
         'data': data,
         'summary': summary,
+        'report': report,
         'error_message': error_message,
         'abfahrten': abfahrten,
         'zollamt_abgang': zollamt_abgang_qs,
