@@ -68,6 +68,22 @@ cd wa_automater
 python3 manage.py test
 ```
 
+## Docker
+
+Container bauen und starten:
+
+```bash
+docker compose up --build
+```
+
+Die Anwendung ist danach unter http://127.0.0.1:8000/ erreichbar.
+
+Container stoppen:
+
+```bash
+docker compose down
+```
+
 ## Hinweise
 
 - Beispiel-PDFs sind in `.gitignore` ausgeschlossen und werden nicht veroeffentlicht.
