@@ -19,6 +19,8 @@ services:
     container_name: wa-automater-caddy
     depends_on:
       - web
+    env_file:
+      - .env.pi
     ports:
       - "80:80"
       - "443:443"
