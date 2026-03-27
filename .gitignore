@@ -1,0 +1,14 @@
+# Lokale Betriebssystemdateien
+.DS_Store
+
+# Python-Cache
+__pycache__/
+*.py[cod]
+
+# Lokale Umgebungsdateien
+.env
+
+# Beispiel- und Test-PDFs nicht versionieren
+/Python_Back_End/loading_list_check/*.pdf
+/Python_Back_End/t1_reader/*.pdf
+/wa_automater/Python_Back_End/loading_list_check/*.pdf
