@@ -84,6 +84,97 @@ Container stoppen:
 docker compose down
 ```
 
+## Docker auf Raspberry Pi (Test-Link ueber eigene Website)
+
+Dieses Setup startet die App auf dem Pi mit Gunicorn und Caddy (HTTPS + Reverse Proxy).
+
+Wenn deine Hauptseite bereits auf demselben Pi laeuft, nutze stattdessen das App-only Setup ohne zweiten Reverse Proxy auf Port 80/443.
+
+### Empfohlen bei bestehender Hauptseite auf dem Pi
+
+1. Umgebungsdatei erstellen:
+
+```bash
+cp .env.pi.example .env.pi
+```
+
+2. In `.env.pi` Domain und Security-Werte setzen:
+	- `DJANGO_SECRET_KEY`
+	- `DJANGO_ALLOWED_HOSTS`
+	- `DJANGO_CSRF_TRUSTED_ORIGINS`
+
+3. Nur den WA-App-Container starten (lokal auf dem Pi unter Port 18000):
+
+```bash
+docker compose -f docker-compose.pi-app.yml --env-file .env.pi up -d --build
+```
+
+4. Im bestehenden Webserver (z. B. Nginx) eine Subdomain auf `127.0.0.1:18000` proxyen.
+	- Beispiel: `deploy/nginx-wa-automater.conf.example`
+
+Nginx auf dem Pi aktivieren (Beispiel Debian/Raspberry Pi OS):
+
+```bash
+sudo cp deploy/nginx-wa-automater.conf.example /etc/nginx/sites-available/wa-automater
+sudo ln -s /etc/nginx/sites-available/wa-automater /etc/nginx/sites-enabled/wa-automater
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+TLS-Zertifikat fuer die Subdomain erstellen (Certbot):
+
+```bash
+sudo mkdir -p /var/www/certbot
+sudo certbot --nginx -d wa-test.deine-domain.de
+sudo systemctl reload nginx
+```
+
+5. Auf deiner Hauptseite einfach auf die Subdomain verlinken, z. B. `https://wa-test.deine-domain.de`.
+
+Stoppen:
+
+```bash
+docker compose -f docker-compose.pi-app.yml --env-file .env.pi down
+```
+
+### Alternative: Vollsetup mit eigenem Caddy
+
+Nur verwenden, wenn auf dem Pi noch kein anderer Dienst Ports 80/443 belegt.
+
+1. DNS-Link auf deiner Domain anlegen:
+	- Erstelle auf deiner Website/Domain einen Subdomain-Eintrag, z. B. `wa-test.deine-domain.de`.
+	- Setze einen `A`-Record auf die oeffentliche IP deines Raspberry Pi (oder Routers).
+2. Router-Portfreigabe einrichten:
+	- Leite `80` und `443` auf den Raspberry Pi weiter.
+3. Umgebungsdatei fuer Pi erstellen:
+
+```bash
+cp .env.pi.example .env.pi
+```
+
+4. Werte in `.env.pi` anpassen:
+	- `DOMAIN`
+	- `DJANGO_SECRET_KEY`
+	- `DJANGO_ALLOWED_HOSTS`
+	- `DJANGO_CSRF_TRUSTED_ORIGINS`
+5. Container auf dem Pi starten:
+
+```bash
+docker compose -f docker-compose.pi.yml --env-file .env.pi up -d --build
+```
+
+6. Test im Browser:
+	- `https://wa-test.deine-domain.de`
+
+Stoppen:
+
+```bash
+docker compose -f docker-compose.pi.yml --env-file .env.pi down
+```
+
+Hinweis:
+- Wenn deine Website bei GitHub Pages liegt, kann sie nicht direkt reverse-proxyen.
+- Nutze in dem Fall einen Subdomain-DNS-Eintrag, der auf den Pi zeigt (wie oben beschrieben).
+
 ## Hinweise
 
 - Beispiel-PDFs sind in `.gitignore` ausgeschlossen und werden nicht veroeffentlicht.

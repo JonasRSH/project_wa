@@ -3,4 +3,6 @@ pandas>=1.5
 openpyxl>=3.0
 PyPDF2>=3.0
 pdfplumber
+gunicorn>=21.2
+whitenoise>=6.6
 # Add any other dependencies your code uses below

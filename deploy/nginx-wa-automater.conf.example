@@ -1,0 +1,37 @@
+# Nginx-Beispiel fuer Subdomain auf dem Pi.
+# Die Hauptseite bleibt unberuehrt, nur wa-test.deine-domain.de wird zur WA-App geleitet.
+
+server {
+    listen 80;
+    server_name wa-test.deine-domain.de;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name wa-test.deine-domain.de;
+
+    # Diese Zertifikatspfade werden von certbot erzeugt.
+    ssl_certificate /etc/letsencrypt/live/wa-test.deine-domain.de/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wa-test.deine-domain.de/privkey.pem;
+
+    # Fuer PDF-Uploads etwas mehr Reserve.
+    client_max_body_size 25M;
+
+    location / {
+        proxy_pass http://127.0.0.1:18000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_redirect off;
+    }
+}

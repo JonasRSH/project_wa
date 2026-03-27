@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wa-automater-web
+    working_dir: /app/wa_automater
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn wa_automater.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
+    env_file:
+      - .env.pi
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: wa-automater-caddy
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
