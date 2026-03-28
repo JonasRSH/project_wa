@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   web:
     build:
@@ -8,8 +6,11 @@ services:
     container_name: wa-automater-web
     working_dir: /app/wa_automater
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn wa_automater.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
-    env_file:
-      - .env.pi
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-for-production}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-wa-generator.jonashuggler.ch,localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://wa-generator.jonashuggler.ch}
     expose:
       - "8000"
     restart: unless-stopped
@@ -19,8 +20,8 @@ services:
     container_name: wa-automater-caddy
     depends_on:
       - web
-    env_file:
-      - .env.pi
+    environment:
+      DOMAIN: ${DOMAIN:-wa-generator.jonashuggler.ch}
     ports:
       - "80:80"
       - "443:443"

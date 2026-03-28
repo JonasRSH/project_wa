@@ -20,10 +20,38 @@ Das Projekt basiert auf Django und verarbeitet u. a. Abmeldelisten, um daraus st
 
 ## Voraussetzungen
 
-- Python 3.10+
-- `pip`
+- Docker Desktop oder Docker Engine mit `docker compose`
+- Optional fuer lokalen Betrieb ohne Docker: Python 3.10+ und `pip`
 
-## Installation
+## Entwicklung mit Docker
+
+Das lokale Entwicklungssetup ist der Standardweg. Du codest im Projektordner, der Container fuehrt Django aus und nutzt den Quellcode ueber den gemounteten Ordner.
+
+Starten:
+
+```bash
+docker compose up --build
+```
+
+Danach im Browser oeffnen:
+
+- http://127.0.0.1:8000/
+
+Stoppen:
+
+```bash
+docker compose down
+```
+
+macOS-Hinweis:
+- Wenn `docker compose up` mit einem Mount-Fehler unter `Documents` scheitert, braucht Docker Desktop Zugriff auf diesen Ordner. Gib Docker Desktop unter macOS Zugriff auf `Documents` oder verschiebe das Projekt in einen bereits freigegebenen Ordner.
+- Sofortiger Fallback ohne Mount (ohne Live-Code-Sync):
+
+```bash
+docker compose -f docker-compose.dev-nomount.yml up --build
+```
+
+## Lokale Installation ohne Docker
 
 Im Projekt-Root ausfuehren:
 
@@ -52,6 +80,28 @@ Danach im Browser oeffnen:
 - Hauptansicht nach Login: `/main/`
 - Preview-Endpunkt: `/preview/`
 
+Demo-Login (automatisch vorhanden in Docker-Setups):
+- Benutzername: `test_user`
+- Passwort: `test1234`
+
+Hinweis zum Passwort-Verhalten:
+- Wenn `test_user` bereits existiert, bleibt das bestehende Passwort unveraendert.
+- Das Passwort aus `WA_DEMO_PASSWORD` wird nur bei Neuanlage gesetzt.
+- Fuer einen erzwungenen Reset kann `WA_DEMO_FORCE_PASSWORD_RESET=true` gesetzt werden.
+
+Hinweis zu Berechtigungen:
+- Die Rollen des Demo-Users werden bei jedem Start synchronisiert.
+- Standard: `is_staff=False` und `is_superuser=False` (kein Admin).
+- Steuerbar ueber `WA_DEMO_IS_STAFF` und `WA_DEMO_IS_SUPERUSER`.
+
+Die Demo-Zugangsdaten koennen per Umgebungsvariablen angepasst werden:
+- `WA_DEMO_USERNAME`
+- `WA_DEMO_PASSWORD`
+- `WA_DEMO_EMAIL`
+- `WA_DEMO_FORCE_PASSWORD_RESET`
+- `WA_DEMO_IS_STAFF`
+- `WA_DEMO_IS_SUPERUSER`
+
 Falls noch kein Benutzer existiert:
 
 ```bash
@@ -68,27 +118,9 @@ cd wa_automater
 python3 manage.py test
 ```
 
-## Docker
-
-Container bauen und starten:
-
-```bash
-docker compose up --build
-```
-
-Die Anwendung ist danach unter http://127.0.0.1:8000/ erreichbar.
-
-Container stoppen:
-
-```bash
-docker compose down
-```
-
 ## Docker auf Raspberry Pi (Test-Link ueber eigene Website)
 
-Dieses Setup startet die App auf dem Pi mit Gunicorn und Caddy (HTTPS + Reverse Proxy).
-
-Wenn deine Hauptseite bereits auf demselben Pi laeuft, nutze stattdessen das App-only Setup ohne zweiten Reverse Proxy auf Port 80/443.
+Dieses Deployment ist vom lokalen Dev-Setup getrennt. Auf dem Pi laeuft nur das App-only Setup ueber [docker-compose.pi-app.yml](docker-compose.pi-app.yml) mit Gunicorn auf Host-Port 8081.
 
 ### Empfohlen bei bestehender Hauptseite auf dem Pi
 
@@ -103,14 +135,15 @@ cp .env.pi.example .env.pi
 	- `DJANGO_ALLOWED_HOSTS`
 	- `DJANGO_CSRF_TRUSTED_ORIGINS`
 
-3. Nur den WA-App-Container starten (lokal auf dem Pi unter Port 18000):
+3. Nur den WA-App-Container starten (lokal auf dem Pi unter Port 8081):
 
 ```bash
 docker compose -f docker-compose.pi-app.yml --env-file .env.pi up -d --build
 ```
 
-4. Im bestehenden Webserver (z. B. Nginx) eine Subdomain auf `127.0.0.1:18000` proxyen.
+4. Im bestehenden Webserver (z. B. Nginx) eine Subdomain auf `127.0.0.1:8081` proxyen.
 	- Beispiel: `deploy/nginx-wa-automater.conf.example`
+	- Falls dein zentraler Nginx selbst in Docker laeuft, proxye stattdessen auf `http://host.docker.internal:8081` und ergaenze im Nginx-Service `extra_hosts: ["host.docker.internal:host-gateway"]`.
 
 Nginx auf dem Pi aktivieren (Beispiel Debian/Raspberry Pi OS):
 
@@ -136,44 +169,8 @@ Stoppen:
 docker compose -f docker-compose.pi-app.yml --env-file .env.pi down
 ```
 
-### Alternative: Vollsetup mit eigenem Caddy
-
-Nur verwenden, wenn auf dem Pi noch kein anderer Dienst Ports 80/443 belegt.
-
-1. DNS-Link auf deiner Domain anlegen:
-	- Erstelle auf deiner Website/Domain einen Subdomain-Eintrag, z. B. `wa-test.deine-domain.de`.
-	- Setze einen `A`-Record auf die oeffentliche IP deines Raspberry Pi (oder Routers).
-2. Router-Portfreigabe einrichten:
-	- Leite `80` und `443` auf den Raspberry Pi weiter.
-3. Umgebungsdatei fuer Pi erstellen:
-
-```bash
-cp .env.pi.example .env.pi
-```
-
-4. Werte in `.env.pi` anpassen:
-	- `DOMAIN`
-	- `DJANGO_SECRET_KEY`
-	- `DJANGO_ALLOWED_HOSTS`
-	- `DJANGO_CSRF_TRUSTED_ORIGINS`
-5. Container auf dem Pi starten:
-
-```bash
-docker compose -f docker-compose.pi.yml --env-file .env.pi up -d --build
-```
-
-6. Test im Browser:
-	- `https://wa-test.deine-domain.de`
-
-Stoppen:
-
-```bash
-docker compose -f docker-compose.pi.yml --env-file .env.pi down
-```
-
 Hinweis:
-- Wenn deine Website bei GitHub Pages liegt, kann sie nicht direkt reverse-proxyen.
-- Nutze in dem Fall einen Subdomain-DNS-Eintrag, der auf den Pi zeigt (wie oben beschrieben).
+- Ohne `.env.pi` starten die Compose-Dateien jetzt mit Fallback-Werten fuer den Testserver. Fuer den Produktivbetrieb solltest du die Datei trotzdem anlegen und Domain-/Secret-Werte explizit setzen.
 
 ## Hinweise
 
