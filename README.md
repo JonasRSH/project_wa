@@ -141,6 +141,10 @@ cp .env.pi.example .env.pi
 docker compose -f docker-compose.pi-app.yml --env-file .env.pi up -d --build
 ```
 
+Wichtig fuer Benutzerkonten:
+- Im Pi-Compose wird die SQLite-Datenbank in einem persistenten Docker-Volume gespeichert.
+- Dadurch bleiben angelegte User (inkl. Passwoerter) bei App-Updates erhalten.
+
 4. Im bestehenden Webserver (z. B. Nginx) eine Subdomain auf `127.0.0.1:8081` proxyen.
 	- Beispiel: `deploy/nginx-wa-automater.conf.example`
 	- Falls dein zentraler Nginx selbst in Docker laeuft, proxye stattdessen auf `http://host.docker.internal:8081` und ergaenze im Nginx-Service `extra_hosts: ["host.docker.internal:host-gateway"]`.

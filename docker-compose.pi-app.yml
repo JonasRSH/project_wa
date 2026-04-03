@@ -12,6 +12,7 @@ services:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-for-production}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-wa-generator.jonashuggler.ch,localhost,127.0.0.1}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://wa-generator.jonashuggler.ch}
+      DJANGO_DB_PATH: ${DJANGO_DB_PATH:-/app/wa_automater/data/db.sqlite3}
       WA_DEMO_USERNAME: ${WA_DEMO_USERNAME:-test_user}
       WA_DEMO_PASSWORD: ${WA_DEMO_PASSWORD:-test1234}
       WA_DEMO_EMAIL: ${WA_DEMO_EMAIL:-testuser@example.local}
@@ -19,4 +20,9 @@ services:
       WA_DEMO_IS_SUPERUSER: ${WA_DEMO_IS_SUPERUSER:-False}
     ports:
       - "8081:8000"
+    volumes:
+      - wa_automater_db:/app/wa_automater/data
     restart: unless-stopped
+
+volumes:
+  wa_automater_db:
