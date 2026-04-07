@@ -8,6 +8,15 @@
                     <h3>Login</h3>
                 </div>
                 <div class="card-body">
+                    <div id="login-info-box" class="login-info-box" role="status" aria-live="polite">
+                        <span class="login-info-text">Test user login upon request</span>
+                        <div class="login-info-actions">
+                            <a class="login-info-request" href="mailto:jonas.huggler@gmail.com?subject=Test%20User%20Request">Request</a>
+                            <button type="button" class="login-info-close" aria-label="Infofenster schliessen" onclick="document.getElementById('login-info-box').style.display='none';">
+                                &times;
+                            </button>
+                        </div>
+                    </div>
                     {% if form.errors %}
                         <div class="alert alert-danger">
                             Benutzername oder Passwort ist ungültig.

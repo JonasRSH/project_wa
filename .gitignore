@@ -5,6 +5,11 @@
 __pycache__/
 *.py[cod]
 
+# Lokale virtuelle Python-Umgebungen
+.venv/
+venv/
+env/
+
 # Lokale Umgebungsdateien
 .env
 .env.pi
