@@ -11,7 +11,14 @@
                     <div id="login-info-box" class="login-info-box" role="status" aria-live="polite">
                         <span class="login-info-text">Test user login upon request</span>
                         <div class="login-info-actions">
-                            <a class="login-info-request" href="mailto:jonas.huggler@gmail.com?subject=Test%20User%20Request">Request</a>
+                            <button
+                                type="button"
+                                class="login-info-request"
+                                style="margin:0; width:auto;"
+                                onclick="window.location.href='mailto:jonas.huggler@gmail.com?subject=Test%20User%20Request'"
+                            >
+                                Request
+                            </button>
                             <button type="button" class="login-info-close" aria-label="Infofenster schliessen" onclick="document.getElementById('login-info-box').style.display='none';">
                                 &times;
                             </button>
