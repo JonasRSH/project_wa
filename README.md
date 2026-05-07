@@ -80,34 +80,6 @@ Danach im Browser oeffnen:
 - Hauptansicht nach Login: `/main/`
 - Preview-Endpunkt: `/preview/`
 
-Demo-Login (automatisch vorhanden in Docker-Setups):
-- Benutzername: `test_user`
-- Passwort: `test1234`
-
-Hinweis zum Passwort-Verhalten:
-- Wenn `test_user` bereits existiert, bleibt das bestehende Passwort unveraendert.
-- Das Passwort aus `WA_DEMO_PASSWORD` wird nur bei Neuanlage gesetzt.
-- Fuer einen erzwungenen Reset kann `WA_DEMO_FORCE_PASSWORD_RESET=true` gesetzt werden.
-
-Hinweis zu Berechtigungen:
-- Die Rollen des Demo-Users werden bei jedem Start synchronisiert.
-- Standard: `is_staff=False` und `is_superuser=False` (kein Admin).
-- Steuerbar ueber `WA_DEMO_IS_STAFF` und `WA_DEMO_IS_SUPERUSER`.
-
-Die Demo-Zugangsdaten koennen per Umgebungsvariablen angepasst werden:
-- `WA_DEMO_USERNAME`
-- `WA_DEMO_PASSWORD`
-- `WA_DEMO_EMAIL`
-- `WA_DEMO_FORCE_PASSWORD_RESET`
-- `WA_DEMO_IS_STAFF`
-- `WA_DEMO_IS_SUPERUSER`
-
-Falls noch kein Benutzer existiert:
-
-```bash
-cd wa_automater
-python3 manage.py createsuperuser
-```
 
 ## Entwicklung
 
@@ -118,9 +90,6 @@ cd wa_automater
 python3 manage.py test
 ```
 
-## Docker auf Raspberry Pi (Test-Link ueber eigene Website)
-
-Dieses Deployment ist vom lokalen Dev-Setup getrennt. Auf dem Pi laeuft nur das App-only Setup ueber [docker-compose.pi-app.yml](docker-compose.pi-app.yml) mit Gunicorn auf Host-Port 8081.
 
 ### Empfohlen bei bestehender Hauptseite auf dem Pi
 
