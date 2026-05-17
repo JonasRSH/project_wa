@@ -1,31 +1,55 @@
-# WA Automater
+# WA Generator
 
-Webanwendung zur automatisierten Erstellung eines Warenausweises (WA) aus PDF-Dokumenten.
-Das Projekt basiert auf Django und verarbeitet u. a. Abmeldelisten, um daraus strukturierte WA-Daten und eine Excel-Ausgabe zu erzeugen.
+«WA Generator» ist eine modulare, containerisierte Webapplikation, umgesetzt mit Python und Django, die sowohl in Cloud-Umgebungen (z. B. IBM Cloud, Microsoft Azure, Google Cloud) als auch auf privaten Servern betrieben werden kann.
+
+Die aktuelle Implementierung läuft als Docker-Container auf einem privaten Server (mein Raspberry Pi), öffentlich erreichbar unter wa-generator.jonashuggler.ch.
+
+## Überblick
+
+Die Anwendung dient zur automatisierten Erstellung eines Warenausweises (WA) aus PDF-Dokumenten. Der aktuelle Ansatz liest Daten aus PDF-Dateien wie Transitdokumenten (T1) und Warenausweisen zur Weiterverarbeitung aus. Die Anwendung kann mit Transitdokumenten und einer Abmeldeliste im PDF-Format ausprobiert werden.
+
+Es handelt sich um keine fertige, einsatzbereite Version, sondern um eine Test- und Entwicklungsanwendung. Aktuell werden keine Daten in einer Datenbank gespeichert. Eine mögliche Weiterentwicklung wäre die Anbindung an eine Datenbank für Sendungsdaten sowie an eine Verzollungssoftware oder eine CH-Zoll-API für Dokumentendaten.
+
+## Zentrale Vorteile
+
+- **Hohe Portabilität:** Durch Docker-Containerisierung konsistent betreibbar über unterschiedliche Infrastrukturen
+- **Skalierbarkeit:** Einfache horizontale und vertikale Skalierung in Cloud-Umgebungen
+- **Schnelle Bereitstellung:** Kurze Deployments, reproduzierbare Setups und vereinfachtes Lifecycle-Management
+- **Kosten- und Ressourceneffizienz:** Bedarfsorientierte Nutzung von Ressourcen, insbesondere in Cloud-Szenarien
+- **Sicherheit & Isolation:** Klare Trennung der Anwendungskomponenten durch Container-Technologie
+
+## Moderne Architekturmerkmale
+
+- **Containerbasierter Betrieb (Docker):** Saubere Abhängigkeitstrennung und stabile Laufzeitumgebung
+- **Flexibler Betrieb:** Wahlfreiheit zwischen Cloud-Betrieb und Betrieb auf eigenem Server
+- **Erweiterbarkeit & Wartbarkeit:** Klare Struktur ermöglicht zukünftige Funktionserweiterungen und einfache Updates
+
+Diese Architektur macht die Anwendung zu einer zukunftssicheren, flexibel einsetzbaren Webapplikation für professionelle Einsatzszenarien. Der «WA Generator» dient dabei als Beispiel. Mit denselben Tools können weitere Automatisierungen oder Anwendungen umgesetzt werden, die Mitarbeitende nicht ersetzen, aber ihre Arbeit erleichtern können.
 
 ## Funktionen
 
 - Upload einer Abmeldeliste als PDF
 - Extraktion und Aufbereitung der Sendungsdaten
-- Anzeige einer Vorschau in der Weboberflaeche
+- Anzeige einer Vorschau in der Weboberfläche
 - Berechnung von Summen (Collies und Gewicht)
-- Erzeugung einer Excel-Datei fuer den Warenausweis
-- Login-geschuetzte Anwendung mit Admin-Bereich
+- Erzeugung einer Excel-Datei für den Warenausweis
+- Login-geschützte Anwendung mit Admin-Bereich
 
 ## Projektstruktur
 
 - `wa_automater/`: Django-Projekt (Settings, URLs, Apps, Templates, Static)
 - `Python_Back_End/`: PDF-Parsing und fachliche Logik
-- `requirements.txt`: Python-Abhaengigkeiten
+- `requirements.txt`: Python-Abhängigkeiten
+- `deploy/`: Beispielkonfigurationen für Deployment und Reverse Proxy
 
 ## Voraussetzungen
 
 - Docker Desktop oder Docker Engine mit `docker compose`
-- Optional fuer lokalen Betrieb ohne Docker: Python 3.10+ und `pip`
+- Optional für lokalen Betrieb ohne Docker: Python 3.10+ und `pip`
 
 ## Entwicklung mit Docker
 
-Das lokale Entwicklungssetup ist der Standardweg. Du codest im Projektordner, der Container fuehrt Django aus und nutzt den Quellcode ueber den gemounteten Ordner.
+Das lokale Entwicklungssetup ist der Standardweg. Du arbeitest im Projektordner, während der Container Django ausführt und den Quellcode über einen gemounteten Ordner nutzt.
 
 Starten:
 
@@ -33,7 +57,7 @@ Starten:
 docker compose up --build
 ```
 
-Danach im Browser oeffnen:
+Danach im Browser öffnen:
 
 - http://127.0.0.1:8000/
 
@@ -43,9 +67,11 @@ Stoppen:
 docker compose down
 ```
 
-macOS-Hinweis:
-- Wenn `docker compose up` mit einem Mount-Fehler unter `Documents` scheitert, braucht Docker Desktop Zugriff auf diesen Ordner. Gib Docker Desktop unter macOS Zugriff auf `Documents` oder verschiebe das Projekt in einen bereits freigegebenen Ordner.
-- Sofortiger Fallback ohne Mount (ohne Live-Code-Sync):
+### macOS-Hinweis
+
+Wenn `docker compose up` mit einem Mount-Fehler unter `Documents` scheitert, braucht Docker Desktop Zugriff auf diesen Ordner. Gib Docker Desktop unter macOS Zugriff auf `Documents` oder verschiebe das Projekt in einen freigegebenen Ordner.
+
+Sofortiger Fallback ohne Mount (ohne Live-Code-Sync):
 
 ```bash
 docker compose -f docker-compose.dev-nomount.yml up --build
@@ -53,7 +79,7 @@ docker compose -f docker-compose.dev-nomount.yml up --build
 
 ## Lokale Installation ohne Docker
 
-Im Projekt-Root ausfuehren:
+Im Projekt-Root ausführen:
 
 ```bash
 python3 -m venv .venv
@@ -69,7 +95,7 @@ python3 manage.py migrate
 python3 manage.py runserver
 ```
 
-Danach im Browser oeffnen:
+Danach im Browser öffnen:
 
 - http://127.0.0.1:8000/
 
@@ -80,18 +106,16 @@ Danach im Browser oeffnen:
 - Hauptansicht nach Login: `/main/`
 - Preview-Endpunkt: `/preview/`
 
-
 ## Entwicklung
 
-Tests ausfuehren:
+Tests ausführen:
 
 ```bash
 cd wa_automater
 python3 manage.py test
 ```
 
-
-### Empfohlen bei bestehender Hauptseite auf dem Pi
+## Deployment auf dem Raspberry Pi
 
 1. Umgebungsdatei erstellen:
 
@@ -99,10 +123,10 @@ python3 manage.py test
 cp .env.pi.example .env.pi
 ```
 
-2. In `.env.pi` Domain und Security-Werte setzen:
-	- `DJANGO_SECRET_KEY`
-	- `DJANGO_ALLOWED_HOSTS`
-	- `DJANGO_CSRF_TRUSTED_ORIGINS`
+2. In `.env.pi` Domain- und Security-Werte setzen:
+   - `DJANGO_SECRET_KEY`
+   - `DJANGO_ALLOWED_HOSTS`
+   - `DJANGO_CSRF_TRUSTED_ORIGINS`
 
 3. Nur den WA-App-Container starten (lokal auf dem Pi unter Port 8081):
 
@@ -110,13 +134,14 @@ cp .env.pi.example .env.pi
 docker compose -f docker-compose.pi-app.yml --env-file .env.pi up -d --build
 ```
 
-Wichtig fuer Benutzerkonten:
+Wichtig für Benutzerkonten:
+
 - Im Pi-Compose wird die SQLite-Datenbank in einem persistenten Docker-Volume gespeichert.
-- Dadurch bleiben angelegte User (inkl. Passwoerter) bei App-Updates erhalten.
+- Dadurch bleiben angelegte User inklusive Passwörter bei App-Updates erhalten.
 
 4. Im bestehenden Webserver (z. B. Nginx) eine Subdomain auf `127.0.0.1:8081` proxyen.
-	- Beispiel: `deploy/nginx-wa-automater.conf.example`
-	- Falls dein zentraler Nginx selbst in Docker laeuft, proxye stattdessen auf `http://host.docker.internal:8081` und ergaenze im Nginx-Service `extra_hosts: ["host.docker.internal:host-gateway"]`.
+   - Beispiel: `deploy/nginx-wa-automater.conf.example`
+   - Falls dein zentraler Nginx selbst in Docker läuft, proxye stattdessen auf `http://host.docker.internal:8081` und ergänze im Nginx-Service `extra_hosts: ["host.docker.internal:host-gateway"]`
 
 Nginx auf dem Pi aktivieren (Beispiel Debian/Raspberry Pi OS):
 
@@ -126,15 +151,17 @@ sudo ln -s /etc/nginx/sites-available/wa-automater /etc/nginx/sites-enabled/wa-a
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-TLS-Zertifikat fuer die Subdomain erstellen (Certbot):
+TLS-Zertifikat für die Subdomain erstellen (Certbot):
 
 ```bash
 sudo mkdir -p /var/www/certbot
-sudo certbot --nginx -d wa-test.deine-domain.de
+sudo certbot --nginx -d wa-generator.jonashuggler.ch
 sudo systemctl reload nginx
 ```
 
-5. Auf deiner Hauptseite einfach auf die Subdomain verlinken, z. B. `https://wa-test.deine-domain.de`.
+5. Danach ist die Anwendung öffentlich erreichbar unter:
+
+- wa-generator.jonashuggler.ch
 
 Stoppen:
 
@@ -142,15 +169,8 @@ Stoppen:
 docker compose -f docker-compose.pi-app.yml --env-file .env.pi down
 ```
 
-Hinweis:
-- Ohne `.env.pi` starten die Compose-Dateien jetzt mit Fallback-Werten fuer den Testserver. Fuer den Produktivbetrieb solltest du die Datei trotzdem anlegen und Domain-/Secret-Werte explizit setzen.
-
 ## Hinweise
 
-- Beispiel-PDFs sind in `.gitignore` ausgeschlossen und werden nicht veroeffentlicht.
-- Die PDF-Auswertung ist von der Datenqualitaet in den Quelldokumenten abhaengig.
-
-
-## VERSION
-
-Dies ist eine nicht zuende entwickelte Test-Version.
+- Beispiel-PDFs sind in `.gitignore` ausgeschlossen und werden nicht veröffentlicht.
+- Die PDF-Auswertung ist von der Datenqualität in den Quelldokumenten abhängig.
+- Dies ist eine noch nicht vollständig entwickelte Test-Version.
