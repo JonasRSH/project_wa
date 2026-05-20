@@ -1,7 +1,10 @@
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
+import os
 import re
+import shutil
 import pandas as pd
 from openpyxl import load_workbook
+from datetime import date
 
 
 # Class which represents a shipment and handles the containing data
@@ -16,7 +19,8 @@ class Shipment():
         self.weight = weight
         self.customs_handling = customs_handling
             
-    # Opens the PDF Shipment-List (Abmeldeliste) with the PyPDF2 Library
+            
+    # Opens the PDF Shipment-List (Abmeldeliste) with the pypdf Library
     @staticmethod
     def open_checklist(pdf_path):
         try:
@@ -50,7 +54,7 @@ class Shipment():
                     shipment_data_list.append(pdf_data)
         return shipment_data_list
 
-#Extract list position from data
+    #Extract list position from data
     @staticmethod
     def get_position(d):
         position = (d[0:3])
@@ -133,7 +137,7 @@ class Shipment():
     def is_valid_shipment(colli_type):
         return colli_type != 'ZK'
     
-    # Calculates them sum of all Collies
+    # Calculates the sum of all Collies
     @staticmethod
     def calculate_total_collies(shipment_list):
         total_collies = sum(shipment.colli_no for shipment in shipment_list)
@@ -175,10 +179,8 @@ class Shipment():
         )
 
 
-    # Öffnet die Excel-Datei 'warenausweis.xlsx', trägt die Daten ein und speichert sie wieder ab
+    # Opens the Excel-file 'warenausweis.xlsx', writes the data and saves the file as a new copy
     def create_excel(self, filename=None, abfahrt_name=None, datum=None, kennzeichen=None, anhaenger=None, zollamt_abgang=None, zollamt_grenz=None):
-        import os
-        import re
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # Vorlage immer gleich, nie überschreiben
         vorlage = os.path.join(base_dir, 'Python_Back_End', 'loading_list_check', 'warenausweis.xlsx')
@@ -196,11 +198,10 @@ class Shipment():
         if zollamt_grenz is None:
             zollamt_grenz = ''
         neuer_name = f"WA {abfahrt_name} {datum}.xlsx"
-        # Entferne problematische Zeichen aus dem Dateinamen
+        # Entfernt problematische Zeichen aus dem Dateinamen
         neuer_name = re.sub(r'[\\/:"*?<>|()]+', '', neuer_name)
         neuer_pfad = os.path.join(base_dir, 'Python_Back_End', 'loading_list_check', neuer_name)
         # Vorlage kopieren
-        import shutil
         shutil.copy(vorlage, neuer_pfad)
         wb = load_workbook(neuer_pfad)
         sheetnames = ['Tabelle 1', 'Tabelle1', 'Tabelle 2', 'Tabelle2', 'Tabelle 3', 'Tabelle3']
@@ -242,6 +243,7 @@ class Shipment():
                     ws.cell(row=row, column=start_col + 3, value=shipment.content)
                     ws.cell(row=row, column=start_col + 4, value=shipment.weight)
         wb.save(neuer_pfad)
+
 
 def main():
     pdf_path = "/Users/Jonas_1/Documents/Jonas/Informatik/Projekt_WA/Python_Back_End/loading_list_check/abmeldeliste.pdf" 

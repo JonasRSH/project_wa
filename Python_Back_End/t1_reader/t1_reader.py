@@ -1,37 +1,50 @@
-from PyPDF2 import PdfReader
-import pandas as pd
+from pypdf import PdfReader
+import re
 
-# Path to the PDF file
-input_file = '/Users/Jonas_1/Documents/Jonas/Informatik/Projekt_WA/Python_Back_End/t1_reader/MRN 25CH02GBIXU8MM7NJ0.pdf'
 
 # Open the PDF file
-try:
-    reader = PdfReader(input_file)
-    for page in reader.pages:
-        text = page.extract_text()
-        print(text)
-except FileNotFoundError:
-    print(f"Error: The file {input_file} does not exist.")
-    exit(1)
+def open_pdf(pdf_path):
+        try:
+            reader = PdfReader(pdf_path)
+            return reader, None
+        except(FileNotFoundError):
+            return None, 'File not Found'
+        
 
-# Extract text from the PDF
-text = ""
-for page_num in range(len(reader.pages)):
-    page = reader.pages[page_num]
-    text += page.extract_text() or ""
+# Read and clean up the PDF data
 
-# Process the extracted text to find the required columns
-# This is a simple example and may need to be adjusted based on the actual PDF content
-lines = text.split('\n')
-data = []
-required_columns = ['MRN', 'Packst. insgesamt', 'Warenbezeichnung', 'Gesamte Rohmasse']
-for line in lines:
-    if any(col in line for col in required_columns):
-        data.append(line.split())
-
-# Convert the data to a DataFrame
-df = pd.DataFrame(data, columns=required_columns)
+def read_pdf_data(pdf_path):
+    reader, error = open_pdf(pdf_path)
+    if reader is None:
+        return None, error
+    transit_data = [page.extract_text() for page in reader.pages]
+    t1_data = "\n".join(transit_data)
+    return t1_data, None
 
 
-# Print the DataFrame (for verification)
-print(df)
+def data_filter(pdf_path):
+    t1_data, error = read_pdf_data(pdf_path)
+    if error:
+        return None, error
+    mrn_match = re.search(r'\d{2}CH[A-Z0-9]+', t1_data)
+    shipment_match = re.search(r'\d{11}', t1_data)
+    transit_document = {
+        'MRN-Nummer': mrn_match.group() if mrn_match else None,
+        'Sendungsnummer': shipment_match.group() if shipment_match else None,
+        'Anzahl Packstücke': '',
+        'Gewicht': '',
+        'Zollstelle': '',
+    }
+    return transit_document, None
+
+
+def main(pdf_path):
+    result, error = data_filter(pdf_path)
+    if error:
+        print(f'Fehler: {error}')
+    else:
+        print(f'Transit Daten: {result}')
+
+
+if __name__ == "__main__":
+    main('/Users/Jonas_1/Documents/Jonas/Informatik/Projekt_WA/project_wa/Python_Back_End/t1_reader/MRN_25CH02GBIXU8MM7NJ0.pdf')
