@@ -9,8 +9,8 @@ services:
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-for-production}
-      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-wa-generator.jonashuggler.ch,localhost,127.0.0.1}
-      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://wa-generator.jonashuggler.ch}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-wa-generator.exampledomain.ch,localhost,127.0.0.1}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://wa-generator.exampldomain.ch}
     expose:
       - "8000"
     restart: unless-stopped
@@ -21,7 +21,7 @@ services:
     depends_on:
       - web
     environment:
-      DOMAIN: ${DOMAIN:-wa-generator.jonashuggler.ch}
+      DOMAIN: ${DOMAIN:-wa-generator.exampledomain.ch}
     ports:
       - "80:80"
       - "443:443"

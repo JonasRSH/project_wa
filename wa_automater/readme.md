@@ -126,11 +126,3 @@ server {
 
 - Die Anwendung befindet sich im Prototyp-Stadium und kann weiterentwickelt werden.
 - Für produktiven Einsatz sind weitere Prüfungen und Anpassungen notwendig.
-
-## Administration
-
-Es existiert ein für Testzwecke angelegter Administrator:
-- User: test_user
-- Passwort: tekTef-4tonqu-fukmud
-
-Dieser muss bei Installation aus Sicherheitsgründen gelöscht und ein neuer User mit sicherem Passwort eingerichtet werden.
