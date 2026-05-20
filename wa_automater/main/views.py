@@ -121,10 +121,3 @@ def main(request):
         'zollamt_grenz': zollamt_grenz_qs,
         'user': request.user,
     })
-
-
-def user_login(request):
-    user = User.objects.create_user("john", "lennon@thebeatles.com", "johnpassword")
-
-    user.last_name = "Lennon"
-    user.save()

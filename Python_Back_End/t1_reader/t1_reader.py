@@ -47,4 +47,4 @@ def main(pdf_path):
 
 
 if __name__ == "__main__":
-    main('/Users/Jonas_1/Documents/Jonas/Informatik/Projekt_WA/project_wa/Python_Back_End/t1_reader/MRN_25CH02GBIXU8MM7NJ0.pdf')
+    main('/Users/Jonas_1/Documents/Jonas/Informatik/Projekt_WA/project_wa/Python_Back_End/t1_reader/MRN_26CH05WTL3TJWMS5J1.pdf')
