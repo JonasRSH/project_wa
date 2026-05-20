@@ -8,7 +8,7 @@ BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(BASE_DIR / 'Python_Back_End' / 'loading_list_check'))
 from CustomsList import Shipment
 from .models import Abfahrt, Zollamt
-
+from django.http import FileResponse, Http404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 
@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 def main(request):
     data = None
     summary = None
+    excel_path = None
     error_message = None
     report = None
     
@@ -79,7 +80,7 @@ def main(request):
 
                         shipment_list[0].shipment_list = shipment_list
                         # Excel schreiben
-                        shipment_list[0].create_excel(
+                        excel_path = shipment_list[0].create_excel(
                             abfahrt_name=abfahrt.name,
                             datum=datum,
                             kennzeichen=abfahrt.kennzeichen,
@@ -120,4 +121,19 @@ def main(request):
         'zollamt_abgang': zollamt_abgang_qs,
         'zollamt_grenz': zollamt_grenz_qs,
         'user': request.user,
+        'excel_path' : excel_path,
+        'excel_filename': os.path.basename(excel_path) if excel_path else '',
     })
+
+
+
+
+@login_required(login_url='login')
+def download_excel(request):
+    filename = request.GET.get('file', '')
+    # Nur Dateinamen erlauben, keinen Pfad (Sicherheit)
+    filename = os.path.basename(filename)
+    file_path = os.path.join(BASE_DIR, 'Python_Back_End', 'loading_list_check', filename)
+    if os.path.exists(file_path) and filename.endswith('.xlsx'):
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
+    raise Http404

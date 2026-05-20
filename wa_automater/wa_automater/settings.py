@@ -45,7 +45,6 @@ CSRF_TRUSTED_ORIGINS = _env_list('DJANGO_CSRF_TRUSTED_ORIGINS', 'http://localhos
 
 INSTALLED_APPS = [
     'main',
-    'preview',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

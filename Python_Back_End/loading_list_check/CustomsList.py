@@ -123,7 +123,7 @@ class Shipment():
     #Extracts customs handling from data
     @staticmethod
     def get_customs_handling(d):
-        handling_list_pattern = r'kg, (EDEC|M90)/(EUR1.*?)?/?(EUVZ|GVZ|ATA|ET1|ST1)?/?((ST1|ET1))?'
+        handling_list_pattern = r'kg, (EDEC|M90)/(EUR1.*?)?/?(EUVZ|GVZ|ATA|E-T1|S-T1)?/?((S-T1|E-T1))?'
         handling_matches = re.search(handling_list_pattern, d)
         if handling_matches:
             customs_handling = []
@@ -243,6 +243,7 @@ class Shipment():
                     ws.cell(row=row, column=start_col + 3, value=shipment.content)
                     ws.cell(row=row, column=start_col + 4, value=shipment.weight)
         wb.save(neuer_pfad)
+        return neuer_pfad
 
 
 def main():
