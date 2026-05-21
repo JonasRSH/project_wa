@@ -152,9 +152,9 @@
                                     <div class="summary">{{ summary }}</div>
                                 {% endif %}
                             </div>
-                            {% if excel_path %}
+                            {% if excel_filename %}
                                 <a href="{% url 'download_excel' %}?file={{ excel_filename }}" class="btn btn-success btn-sm">
-                                    Excel herunterladen
+                                    WA herunterladen
                                 </a>
                             {% endif %}
                         </div>

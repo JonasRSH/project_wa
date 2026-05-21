@@ -1,10 +1,10 @@
 from pypdf import PdfReader
 import os
 import re
-import shutil
 import pandas as pd
 from openpyxl import load_workbook
 from datetime import date
+from io import BytesIO
 
 
 # Class which represents a shipment and handles the containing data
@@ -42,7 +42,7 @@ class Shipment():
             data_from_pdf = page.extract_text()
             if not data_from_pdf:
                 continue  # Leere Seite überspringen
-            pdf_data = data_from_pdf.replace('-', '') 
+            pdf_data = re.sub(r'^[-\s]+$', '', data_from_pdf, flags=re.MULTILINE)  # Entfernt die Trennlinien
             data_list = pdf_data.split('\n\n')
 
             for i in data_list:
@@ -63,17 +63,18 @@ class Shipment():
     #Extract shipment number from data
     @staticmethod
     def get_shipment_no(d):
-        shipment_no = d[3:14]
+        match = re.search(r'\d{11}', d)
+        shipment_no = match.group(0) if match else None
         return shipment_no
 
-    #Exctract exporter from data
+    #Extract exporter from data
     @staticmethod
     def get_exporter(d):
-        exporter_data = d[14:44].split(',')
-        exporter = exporter_data[0].split()[0]
+        match = re.search(r'\d{11}\s+(\w+)', d)
+        exporter = match.group(1) if match else None
         return exporter
-
-    #Exctract colli number from data
+        
+    #Extract colli number from data
     @staticmethod
     def get_colli_no(d):
         colli = 'KT|EW|EU|KI|ZK|GB|PA|BX|DR|PH|HE'
@@ -85,7 +86,7 @@ class Shipment():
             colli_no += collies
             return colli_no
 
-    #Exctract colli type from data
+    #Extract colli type from data
     @staticmethod
     def get_colli_type(d):
         colli = 'KT|EW|EU|KI|ZK|GB|PA|BX|DR|PH|HE'
@@ -96,7 +97,7 @@ class Shipment():
             return colli_type
 
 
-    #Extract conent from data
+    #Extract content from data
     @staticmethod
     def get_content(d):
         content_list = []
@@ -119,25 +120,20 @@ class Shipment():
             weight += weights
             return weight
 
-
     #Extracts customs handling from data
     @staticmethod
     def get_customs_handling(d):
-        handling_list_pattern = r'kg, (EDEC|M90)/(EUR1.*?)?/?(EUVZ|GVZ|ATA|E-T1|S-T1)?/?((S-T1|E-T1))?'
-        handling_matches = re.search(handling_list_pattern, d)
-        if handling_matches:
-            customs_handling = []
-            customs_handling.append(handling_matches.group(1,2,3,4))
-        else:
-            customs_handling = ['! No customs handling ! Please verify...']
-        return customs_handling
-    
-    # Return True if the shipment is valid (not 'ZK'), False otherwise
+        tokens = re.findall(r'EDEC|M90|EUR1|EU-VZ|EUVZ|GVZ|ATA|E-T1|S-T1', d)
+        if tokens:
+            return tokens
+        return ['! No customs handling ! Please verify...']
+
+    #Return True if the shipment is valid (not 'ZK'), False otherwise
     @staticmethod
     def is_valid_shipment(colli_type):
         return colli_type != 'ZK'
     
-    # Calculates the sum of all Collies
+    #Calculates the sum of all Collies
     @staticmethod
     def calculate_total_collies(shipment_list):
         total_collies = sum(shipment.colli_no for shipment in shipment_list)
@@ -148,7 +144,7 @@ class Shipment():
         total_weight = sum(shipment.weight for shipment in shipment_list)
         return total_weight
 
-    # Creates a shipment with the from the PDF extracted data
+    #Creates a shipment with the from the PDF extracted data
     @classmethod
     def create_shipment(cls, pdf_path):
         shipment_data = cls.read_pdf_data(pdf_path)
@@ -179,7 +175,7 @@ class Shipment():
         )
 
 
-    # Opens the Excel-file 'warenausweis.xlsx', writes the data and saves the file as a new copy
+    #Opens the Excel-file 'warenausweis.xlsx', writes the data and saves the file as a new copy in memory 
     def create_excel(self, filename=None, abfahrt_name=None, datum=None, kennzeichen=None, anhaenger=None, zollamt_abgang=None, zollamt_grenz=None):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # Vorlage immer gleich, nie überschreiben
@@ -200,10 +196,8 @@ class Shipment():
         neuer_name = f"WA {abfahrt_name} {datum}.xlsx"
         # Entfernt problematische Zeichen aus dem Dateinamen
         neuer_name = re.sub(r'[\\/:"*?<>|()]+', '', neuer_name)
-        neuer_pfad = os.path.join(base_dir, 'Python_Back_End', 'loading_list_check', neuer_name)
-        # Vorlage kopieren
-        shutil.copy(vorlage, neuer_pfad)
-        wb = load_workbook(neuer_pfad)
+        
+        wb = load_workbook(vorlage)
         sheetnames = ['Tabelle 1', 'Tabelle1', 'Tabelle 2', 'Tabelle2', 'Tabelle 3', 'Tabelle3']
         print('DEBUG: Vorhandene Sheets:', wb.sheetnames)
         for sheetname in sheetnames:
@@ -242,8 +236,10 @@ class Shipment():
                     ws.cell(row=row, column=start_col + 2, value=shipment.colli_type)
                     ws.cell(row=row, column=start_col + 3, value=shipment.content)
                     ws.cell(row=row, column=start_col + 4, value=shipment.weight)
-        wb.save(neuer_pfad)
-        return neuer_pfad
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        return buffer, neuer_name 
 
 
 def main():

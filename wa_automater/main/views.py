@@ -11,6 +11,8 @@ from .models import Abfahrt, Zollamt
 from django.http import FileResponse, Http404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+import base64
+from io import BytesIO
 
 
 @login_required(login_url='login')
@@ -80,7 +82,7 @@ def main(request):
 
                         shipment_list[0].shipment_list = shipment_list
                         # Excel schreiben
-                        excel_path = shipment_list[0].create_excel(
+                        buffer, filename = shipment_list[0].create_excel(
                             abfahrt_name=abfahrt.name,
                             datum=datum,
                             kennzeichen=abfahrt.kennzeichen,
@@ -88,6 +90,9 @@ def main(request):
                             zollamt_abgang=str(zollamt_abgang.name) if zollamt_abgang else '',
                             zollamt_grenz=str(zollamt_grenz.name) if zollamt_grenz else ''
                         )
+                        excel_bytes = base64.b64encode(buffer.getvalue()).decode()
+                        request.session['excel_data'] = excel_bytes
+                        request.session['excel_filename'] = filename
                         # Vorschau generieren
                         df = pd.DataFrame([
                             {
@@ -121,8 +126,7 @@ def main(request):
         'zollamt_abgang': zollamt_abgang_qs,
         'zollamt_grenz': zollamt_grenz_qs,
         'user': request.user,
-        'excel_path' : excel_path,
-        'excel_filename': os.path.basename(excel_path) if excel_path else '',
+        'excel_filename': request.session.get('excel_filename', ''),
     })
 
 
@@ -130,10 +134,9 @@ def main(request):
 
 @login_required(login_url='login')
 def download_excel(request):
-    filename = request.GET.get('file', '')
-    # Nur Dateinamen erlauben, keinen Pfad (Sicherheit)
-    filename = os.path.basename(filename)
-    file_path = os.path.join(BASE_DIR, 'Python_Back_End', 'loading_list_check', filename)
-    if os.path.exists(file_path) and filename.endswith('.xlsx'):
-        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=filename)
-    raise Http404
+    excel_data = request.session.get('excel_data')
+    filename = request.session.get('excel_filename', 'Warenausweis.xlsx')
+    if not excel_data:
+        raise Http404
+    buffer = BytesIO(base64.b64decode(excel_data))
+    return FileResponse(buffer, as_attachment=True, filename=filename)
