@@ -18,11 +18,8 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-
 from django.contrib.auth import views as auth_views
-
 from main.views_logout import custom_logout
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,6 +29,5 @@ urlpatterns = [
     path('logout/', custom_logout, name='logout'),
     # Main- und Preview-Apps
     path('main/', include('main.urls')),
-    path('preview/', include('preview.urls')),
 ]
 

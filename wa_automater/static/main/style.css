@@ -194,6 +194,80 @@ label {
     align-items: center;
 }
 
+.login-info-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid #cce6ff;
+    background: linear-gradient(180deg, #f8fcff 0%, #eef7ff 100%);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 14px rgba(0, 51, 102, 0.08);
+}
+
+.login-info-text {
+    color: #003366;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.login-info-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-info-request {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid #8ab4d8;
+    border-radius: 16px;
+    background-color: #ffffff;
+    color: #003366;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.login-info-request:hover {
+    background-color: #003366;
+    color: #ffffff;
+    border-color: #003366;
+    text-decoration: none;
+}
+
+.login-info-close {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #8ab4d8;
+    border-radius: 50%;
+    background-color: #ffffff;
+    color: #003366;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.login-info-close:hover {
+    background-color: #003366;
+    color: #ffffff;
+    border-color: #003366;
+}
+
 
 .wa-preview-container table tr {
     height: 18px;

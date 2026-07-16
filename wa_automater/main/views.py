@@ -8,16 +8,20 @@ BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(BASE_DIR / 'Python_Back_End' / 'loading_list_check'))
 from CustomsList import Shipment
 from .models import Abfahrt, Zollamt
-
+from django.http import FileResponse, Http404
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+import base64
+from io import BytesIO
 
 
 @login_required(login_url='login')
 def main(request):
     data = None
     summary = None
+    excel_path = None
     error_message = None
+    report = None
     
     # Nur benutzerspezifische Daten anzeigen (oder alle für Superuser)
     if request.user.is_superuser:
@@ -53,6 +57,7 @@ def main(request):
                     return render(request, 'main/main.html', {
                         'data': data,
                         'summary': summary,
+                        'report': report,
                         'error_message': error_message,
                         'abfahrten': abfahrten,
                     })
@@ -60,9 +65,24 @@ def main(request):
                 if os.path.exists(temp_path):
                     shipment_list = Shipment.create_shipment(temp_path)
                     if shipment_list:
+                        report_lines = []
+                        for shipment in shipment_list:
+                            customs_text = ' '.join(str(x) for x in shipment.customs_handling)
+                            if 'No customs handling' in customs_text:
+                                line_no = str(shipment.position).strip() or '-'
+                                shipment_no = str(shipment.shipment_no).strip() or '-'
+                                report_lines.append(
+                                    f'Missing customs handling in Line No. {line_no} shipment no. {shipment_no}'
+                                )
+
+                        if report_lines:
+                            report = '\n'.join(report_lines)
+                        else:
+                            report = 'No customs handling issues found.'
+
                         shipment_list[0].shipment_list = shipment_list
                         # Excel schreiben
-                        shipment_list[0].create_excel(
+                        buffer, filename = shipment_list[0].create_excel(
                             abfahrt_name=abfahrt.name,
                             datum=datum,
                             kennzeichen=abfahrt.kennzeichen,
@@ -70,6 +90,9 @@ def main(request):
                             zollamt_abgang=str(zollamt_abgang.name) if zollamt_abgang else '',
                             zollamt_grenz=str(zollamt_grenz.name) if zollamt_grenz else ''
                         )
+                        excel_bytes = base64.b64encode(buffer.getvalue()).decode()
+                        request.session['excel_data'] = excel_bytes
+                        request.session['excel_filename'] = filename
                         # Vorschau generieren
                         df = pd.DataFrame([
                             {
@@ -97,16 +120,23 @@ def main(request):
     return render(request, 'main/main.html', {
         'data': data,
         'summary': summary,
+        'report': report,
         'error_message': error_message,
         'abfahrten': abfahrten,
         'zollamt_abgang': zollamt_abgang_qs,
         'zollamt_grenz': zollamt_grenz_qs,
         'user': request.user,
+        'excel_filename': request.session.get('excel_filename', ''),
     })
 
 
-def user_login(request):
-    user = User.objects.create_user("john", "lennon@thebeatles.com", "johnpassword")
 
-    user.last_name = "Lennon"
-    user.save()
+
+@login_required(login_url='login')
+def download_excel(request):
+    excel_data = request.session.get('excel_data')
+    filename = request.session.get('excel_filename', 'Warenausweis.xlsx')
+    if not excel_data:
+        raise Http404
+    buffer = BytesIO(base64.b64decode(excel_data))
+    return FileResponse(buffer, as_attachment=True, filename=filename)

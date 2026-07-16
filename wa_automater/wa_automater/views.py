@@ -1,10 +1,12 @@
 from django.shortcuts import render
 import sys
 import os
+import pathlib
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../')))
 
-from Python_Back_End.loading_list_check.CustomsList import Shipment
+BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(BASE_DIR / 'Python_Back_End' / 'loading_list_check'))
+
 
 def wa_automator(request):
     return render(request, 'main/main.html')
