@@ -28,12 +28,15 @@ def data_filter(pdf_path):
         return None, error
     mrn_match = re.search(r'\d{2}CH[A-Z0-9]+', t1_data)
     shipment_match = re.search(r'\d{11}', t1_data)
+    colli_no_match = re.search(r'Packst\. insgesamt[\s\S]*?\d+\s+(\d+)\s+[^\s]+\.\d{3}', t1_data)
+    gewicht_match = re.search(r'Gesamte Rohmasse[\s\S]*?\d+\s+\d+\s+([^\s]+\.\d{3})', t1_data)
+    zollstelle_match = re.search(r'BESTIMMUNGSSTELLE[\s\S]*?CH\d+\s+([^,\n]+)', t1_data)
     transit_document = {
         'MRN-Nummer': mrn_match.group() if mrn_match else None,
         'Sendungsnummer': shipment_match.group() if shipment_match else None,
-        'Anzahl Packstücke': '',
-        'Gewicht': '',
-        'Zollstelle': '',
+        'Anzahl Packstücke': colli_no_match.group(1) if colli_no_match else None,
+        'Gewicht': gewicht_match.group(1) if gewicht_match else None,
+        'Zollstelle': zollstelle_match.group(1) if zollstelle_match else None,
     }
     return transit_document, None
 
