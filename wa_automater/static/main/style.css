@@ -86,6 +86,11 @@ h1, h2 {
   
 }
 
+.wa-preview-warning {
+    color: #c62828;
+    font-weight: 700;
+}
+
 .customs-offices {
     display: flex;
     flex-direction: row;

@@ -248,6 +248,19 @@ def main(request):
                             report = '✓ Alles in Ordnung – keine Abweichungen gefunden.'
 
                         shipment_list[0].shipment_list = shipment_list
+
+                        # MRN aus verknüpften T1-Dokumenten an jedes Shipment-Objekt hängen
+                        # (wird in create_excel statt der Sendungsnummer eingetragen)
+                        for s in shipment_list:
+                            s_no = str(s.shipment_no).strip() if s.shipment_no else None
+                            if s_no:
+                                db_s = ShipmentModel.objects.filter(
+                                    shipment_number=s_no, user=request.user
+                                ).select_related('transit').first()
+                                s.mrn = db_s.transit.t_number if (db_s and db_s.transit) else None
+                            else:
+                                s.mrn = None
+
                         # Excel schreiben
                         buffer, filename = shipment_list[0].create_excel(
                             abfahrt_name=abfahrt.name,
@@ -273,15 +286,33 @@ def main(request):
                         bottom_group = [s for s in shipment_list if not is_et1_durchgehend(s)]
 
                         def shipment_to_row(s, gruppe=''):
+                            mrn = getattr(s, 'mrn', None)
+                            # Sendungsnummer: MRN anzeigen falls vorhanden,
+                            # sonst Sendungsnummer in fett rot (kein T1 verknüpft)
+                            if mrn:
+                                sno_display = mrn
+                            else:
+                                sno_display = (
+                                    f'<span class="wa-preview-warning">'
+                                    f'{s.shipment_no}</span>'
+                                )
+                            # Zollabfertigung: fehlende Customs-Handling-Warnung fett rot hervorheben
+                            customs_str = ' '.join(s.customs_handling)
+                            if 'No customs handling' in customs_str:
+                                customs_display = (
+                                    f'<span class="wa-preview-warning">{customs_str}</span>'
+                                )
+                            else:
+                                customs_display = customs_str
                             return {
                                 'Gruppe': gruppe,
-                                'Sendungsnummer': s.shipment_no,
+                                'Sendungsnummer': sno_display,
                                 'Exporteur': s.exporter,
                                 'Colli': s.colli_no,
                                 'Typ': s.colli_type,
                                 'Inhalt': s.content,
                                 'Gewicht': s.weight,
-                                'Zollabfertigung': ' '.join(s.customs_handling),
+                                'Zollabfertigung': customs_display,
                             }
 
                         rows = [shipment_to_row(s, 'E-T1 durchgehend') for s in top_group]
@@ -294,7 +325,8 @@ def main(request):
                         rows += [shipment_to_row(s, 'S-T1 / Grenze') for s in bottom_group]
 
                         df = pd.DataFrame(rows)
-                        data = df.to_html(classes='table table-striped a4-size', index=False)
+                        # escape=False damit die HTML-Spans gerendert werden
+                        data = df.to_html(classes='table table-striped a4-size', index=False, escape=False)
                         sum_collies = Shipment.calculate_total_collies(shipment_list)
                         sum_weight = Shipment.calculate_total_weight(shipment_list)
                         summary = f'Summe der Collies: {sum_collies} und Gewicht: {sum_weight}'
