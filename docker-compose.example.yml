@@ -6,12 +6,12 @@ services:
     image: wa-automater-pi-app:latest
     container_name: wa-automater-web
     working_dir: /app/wa_automater
-    command: sh -c "python manage.py migrate && python manage.py ensure_test_user && python manage.py collectstatic --noinput && gunicorn wa_automater.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
+    command: gunicorn wa_automater.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-for-production}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-wa-generator.exampledomain.ch,localhost,127.0.0.1}
-      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://wa-generator.exampldomain.ch}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:-https://wa-generator.exampledomain.ch}
       DJANGO_DB_PATH: ${DJANGO_DB_PATH:-/app/wa_automater/data/db.sqlite3}
       WA_DEMO_USERNAME: ${WA_DEMO_USERNAME:-test_user}
       WA_DEMO_PASSWORD: ${WA_DEMO_PASSWORD:-test1234}
@@ -24,24 +24,5 @@ services:
       - wa_automater_db:/app/wa_automater/data
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: wa-automater-caddy
-    profiles: ["proxy"]
-    depends_on:
-      - web
-    environment:
-      DOMAIN: ${DOMAIN:-wa-generator.exampledomain.ch}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    restart: unless-stopped
-
 volumes:
   wa_automater_db:
-  caddy_data:
-  caddy_config:
