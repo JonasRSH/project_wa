@@ -163,6 +163,8 @@ def main(request):
                                     continue
                                 t1_colli_str = t1_result.get('Anzahl Packstücke')
                                 t1_colli_qty = int(t1_colli_str) if t1_colli_str else 0
+                                t1_colli_type = t1_result.get('Colli-Typ')
+                                t1_goods_description = t1_result.get('Warenbeschreibung')
                                 t1_weight_raw = str(t1_result.get('Gewicht') or '0')
                                 t1_weight_str = t1_weight_raw.replace('’', '').replace("'", '')
                                 try:
@@ -173,6 +175,8 @@ def main(request):
                                     t_number=mrn,
                                     defaults={
                                         't_colli_quantity': t1_colli_qty,
+                                        't_colli_type': t1_colli_type,
+                                        't_goods_description': t1_goods_description,
                                         't_weight': t1_weight,
                                         't_customs_office': t1_result.get('Zollstelle'),
                                         'user': request.user,
@@ -186,6 +190,24 @@ def main(request):
                                     ).update(transit=transit_doc)
                             except Exception:
                                 continue
+
+                        # Sammel-T1: Wenn genau ein unzugeordnetes Transitdokument existiert,
+                        # ordnen wir es allen S-T1-Sendungen ohne Transit zu.
+                        s_t1_numbers = {
+                            str(s.shipment_no).strip()
+                            for s in shipment_list
+                            if s.shipment_no and 'S-T1' in s.customs_handling
+                        }
+                        unassigned_transits = TransitDocument.objects.filter(user=request.user).exclude(
+                            shipment__user=request.user
+                        )
+                        if s_t1_numbers and unassigned_transits.count() == 1:
+                            shared_transit = unassigned_transits.first()
+                            ShipmentModel.objects.filter(
+                                shipment_number__in=s_t1_numbers,
+                                user=request.user,
+                                transit__isnull=True,
+                            ).update(transit=shared_transit)
 
                         # --- Report ---
                         report_lines = []
@@ -253,13 +275,23 @@ def main(request):
                         # (wird in create_excel statt der Sendungsnummer eingetragen)
                         for s in shipment_list:
                             s_no = str(s.shipment_no).strip() if s.shipment_no else None
+                            s.mrn = None
+                            s.t1_colli_no = None
+                            s.t1_colli_type = None
+                            s.t1_goods_description = None
+                            s.t1_weight = None
+                            s.t1_customs_office = None
                             if s_no:
                                 db_s = ShipmentModel.objects.filter(
                                     shipment_number=s_no, user=request.user
                                 ).select_related('transit').first()
-                                s.mrn = db_s.transit.t_number if (db_s and db_s.transit) else None
-                            else:
-                                s.mrn = None
+                                if db_s and db_s.transit:
+                                    s.mrn = db_s.transit.t_number
+                                    s.t1_colli_no = db_s.transit.t_colli_quantity
+                                    s.t1_colli_type = db_s.transit.t_colli_type
+                                    s.t1_goods_description = db_s.transit.t_goods_description
+                                    s.t1_weight = db_s.transit.t_weight
+                                    s.t1_customs_office = db_s.transit.t_customs_office
 
                         # Excel schreiben
                         buffer, filename = shipment_list[0].create_excel(
@@ -287,6 +319,10 @@ def main(request):
 
                         def shipment_to_row(s, gruppe=''):
                             mrn = getattr(s, 'mrn', None)
+                            t1_colli = getattr(s, 't1_colli_no', None)
+                            t1_colli_type = getattr(s, 't1_colli_type', None)
+                            t1_goods_description = getattr(s, 't1_goods_description', None)
+                            t1_weight = getattr(s, 't1_weight', None)
                             # Sendungsnummer: MRN anzeigen falls vorhanden,
                             # sonst Sendungsnummer in fett rot (kein T1 verknüpft)
                             if mrn:
@@ -307,11 +343,11 @@ def main(request):
                             return {
                                 'Gruppe': gruppe,
                                 'Sendungsnummer': sno_display,
-                                'Exporteur': s.exporter,
-                                'Colli': s.colli_no,
-                                'Typ': s.colli_type,
-                                'Inhalt': s.content,
-                                'Gewicht': s.weight,
+                                'Exporteur': '',
+                                'Colli': t1_colli if t1_colli is not None else '',
+                                'Typ': t1_colli_type if t1_colli_type else '',
+                                'Inhalt': t1_goods_description if t1_goods_description else '',
+                                'Gewicht': t1_weight if t1_weight is not None else '',
                                 'Zollabfertigung': customs_display,
                             }
 

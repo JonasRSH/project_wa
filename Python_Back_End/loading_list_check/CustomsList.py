@@ -244,12 +244,12 @@ class Shipment():
                 bottom_group = [s for s in self.shipment_list if not is_et1_durchgehend(s)]
 
                 def write_shipment(row, shipment):
-                    # MRN aus T1-Dokument verwenden, falls vorhanden – sonst Sendungsnummer
-                    ws.cell(row=row, column=start_col,     value=getattr(shipment, 'mrn', None) or shipment.shipment_no)
-                    ws.cell(row=row, column=start_col + 1, value=shipment.colli_no)
-                    ws.cell(row=row, column=start_col + 2, value=shipment.colli_type)
-                    ws.cell(row=row, column=start_col + 3, value=shipment.content)
-                    ws.cell(row=row, column=start_col + 4, value=shipment.weight)
+                    # Excel-Daten kommen aus dem T1-Transitdokument.
+                    ws.cell(row=row, column=start_col,     value=getattr(shipment, 'mrn', None) or '')
+                    ws.cell(row=row, column=start_col + 1, value=getattr(shipment, 't1_colli_no', None))
+                    ws.cell(row=row, column=start_col + 2, value=getattr(shipment, 't1_colli_type', None) or '')
+                    ws.cell(row=row, column=start_col + 3, value=getattr(shipment, 't1_goods_description', None) or '')
+                    ws.cell(row=row, column=start_col + 4, value=getattr(shipment, 't1_weight', None))
 
                 current_row = start_row
 

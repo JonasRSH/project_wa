@@ -44,6 +44,8 @@ only_digits = RegexValidator(r'^\d{11}$', 'Nur 11 Ziffern erlaubt.')
 class TransitDocument(models.Model):
     t_number = models.CharField(max_length=30, primary_key=True)  # MRN-Nummer
     t_colli_quantity = models.IntegerField()
+    t_colli_type = models.CharField(max_length=20, null=True, blank=True)
+    t_goods_description = models.CharField(max_length=255, null=True, blank=True)
     t_weight = models.FloatField(null=True, blank=True)
     t_customs_office = models.CharField(max_length=100, null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
