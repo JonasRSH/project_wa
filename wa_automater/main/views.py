@@ -6,6 +6,7 @@ from django.conf import settings
 import sys
 import pathlib
 from pypdf import PdfReader
+from django.contrib import messages
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(BASE_DIR / 'Python_Back_End' / 'loading_list_check'))
 sys.path.append(str(BASE_DIR / 'Python_Back_End' / 't1_reader'))
@@ -18,6 +19,24 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 import base64
 from io import BytesIO
+
+
+def _cleanup_uploaded_files():
+    """Entfernt temporäre Upload-Dateien aus den Parser-Arbeitsordnern."""
+    cleanup_specs = [
+        (os.path.join(settings.BASE_DIR, 'Python_Back_End', 'loading_list_check'), ('abmeldeliste.pdf',)),
+        (os.path.join(settings.BASE_DIR, 'Python_Back_End', 't1_reader'), ('temp_*.pdf',)),
+    ]
+
+    for folder, patterns in cleanup_specs:
+        if not os.path.isdir(folder):
+            continue
+        for pattern in patterns:
+            for file_path in pathlib.Path(folder).glob(pattern):
+                try:
+                    file_path.unlink(missing_ok=True)
+                except OSError:
+                    continue
 
 
 def _is_pdf(file_obj):
@@ -396,6 +415,22 @@ def download_excel(request):
         raise Http404
     buffer = BytesIO(base64.b64decode(excel_data))
     return FileResponse(buffer, as_attachment=True, filename=filename)
+
+
+@login_required(login_url='login')
+def clear_uploaded_data(request):
+    if request.method != 'POST':
+        return redirect('main')
+
+    # Alle benutzerspezifischen WA-/T1-Daten entfernen.
+    ShipmentModel.objects.filter(user=request.user).delete()
+    TransitDocument.objects.filter(user=request.user).delete()
+    _cleanup_uploaded_files()
+
+    request.session.pop('excel_data', None)
+    request.session.pop('excel_filename', None)
+    messages.success(request, 'Alle Upload- und Transitdaten wurden gelöscht.')
+    return redirect('main')
 
 
 

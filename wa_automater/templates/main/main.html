@@ -200,6 +200,11 @@
                 </div>
                 <div class="col-md-6">
                     <div class="wa-preview-container">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags|default:'info' }} font-weight-bold" role="alert">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
                         {% if error_message %}
                             <div class="alert alert-danger font-weight-bold" role="alert">{{ error_message }}</div>
                         {% endif %}
@@ -216,6 +221,12 @@
                                     WA herunterladen
                                 </a>
                             {% endif %}
+                        </div>
+                        <div class="mt-2 text-right">
+                            <form method="post" action="{% url 'clear_uploaded_data' %}" onsubmit="return confirm('Alle Upload- und Transitdaten wirklich löschen?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm">Alle Daten löschen</button>
+                            </form>
                         </div>
 
                         {% if debug_pdf_path %}
