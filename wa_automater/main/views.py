@@ -422,14 +422,19 @@ def clear_uploaded_data(request):
     if request.method != 'POST':
         return redirect('main')
 
-    # Alle benutzerspezifischen WA-/T1-Daten entfernen.
-    ShipmentModel.objects.filter(user=request.user).delete()
-    TransitDocument.objects.filter(user=request.user).delete()
-    _cleanup_uploaded_files()
+    try:
+        # Alle benutzerspezifischen WA-/T1-Daten entfernen.
+        ShipmentModel.objects.filter(user=request.user).delete()
+        TransitDocument.objects.filter(user=request.user).delete()
+        _cleanup_uploaded_files()
 
-    request.session.pop('excel_data', None)
-    request.session.pop('excel_filename', None)
-    messages.success(request, 'Alle Upload- und Transitdaten wurden gelöscht.')
+        request.session.pop('excel_data', None)
+        request.session.pop('excel_filename', None)
+        messages.success(request, 'Alle Upload- und Transitdaten wurden gelöscht.')
+    except Exception:
+        # Kein 500 für Anwender, stattdessen sauber zurück auf die Hauptseite.
+        messages.error(request, 'Die Daten konnten nicht vollständig gelöscht werden. Bitte erneut versuchen.')
+
     return redirect('main')
 
 
