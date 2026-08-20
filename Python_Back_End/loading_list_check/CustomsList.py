@@ -71,31 +71,31 @@ class Shipment():
     #Extract exporter from data
     @staticmethod
     def get_exporter(d):
-        match = re.search(r'\d{11}\s+(\w+)', d)
+        match = re.search(r'\d{11}[,\s]+(\w+)', d)
         exporter = match.group(1) if match else None
         return exporter
         
     #Extract colli number from data
     @staticmethod
     def get_colli_no(d):
-        colli = 'KT|EW|EU|KI|ZK|GB|PA|BX|DR|PH|HE'
-        pattern = rf'(0[0-9]{{2}})(.*,)([0-9]{{1,3}}) ({colli})'
-        matches = re.finditer(pattern, d)
-        colli_no = 0
-        for match in matches:
-            collies = int(match.group(3))
-            colli_no += collies
-            return colli_no
+        colli = r'KT|EW|EU|KI|ZK|GB|PA|BX|DR|PH|HE|ST'
+        pattern = rf'(\d{{1,3}})\s+({colli})\b'
+        total = sum(int(m[0]) for m in re.findall(pattern, d))
+        if total == 0:
+            # Fallback für unbekannte Colli-Typen
+            total = sum(int(m) for m in re.findall(r'(\d{1,3})\s+[A-Z]{2,3}\b', d))
+        return total
 
     #Extract colli type from data
     @staticmethod
     def get_colli_type(d):
-        colli = 'KT|EW|EU|KI|ZK|GB|PA|BX|DR|PH|HE'
-        pattern = rf'(0[0-9]{{2}})(.*,)([0-9]{{1,3}}) ({colli})'
+        colli = r'KT|EW|EU|KI|ZK|GB|PA|BX|DR|PH|HE|ST'
+        pattern = rf'\d{{1,3}}\s+({colli})\b'
         match = re.search(pattern, d)
         if match:
-            colli_type = match.group(4)
-            return colli_type
+            return match.group(1)
+        # Unbekannter Typ → als PK behandeln
+        return 'PK' if re.search(r'\d{1,3}\s+[A-Z]{2,3}\b', d) else None
 
 
     #Extract content from data
@@ -113,13 +113,15 @@ class Shipment():
     #Extract weight from data
     @staticmethod
     def get_weight(d):
-        weight_pattern = rf'([0-9]{{1,5}}) (kg)'
-        weight_match = re.finditer(weight_pattern, d)
         weight = 0
-        for match in weight_match:
-            weights = int(match.group(1))
-            weight += weights
-            return weight
+        for m in re.finditer(r'(\d{1,5})\s+kg,', d):
+            weight += int(m.group(1))
+        for m in re.finditer(r'(?<!\d)(\d{1,4})(?!\d)\s*,\s*0[0-9]{2}(?!\d)', d):
+            weight += int(m.group(1))
+        m = re.search(r'(?<!\d)(\d{1,4})$', d)
+        if m:
+            weight += int(m.group(1))
+        return weight
 
     #Extracts customs handling from data
     @staticmethod
@@ -137,12 +139,12 @@ class Shipment():
     #Calculates the sum of all Collies
     @staticmethod
     def calculate_total_collies(shipment_list):
-        total_collies = sum(shipment.colli_no for shipment in shipment_list)
+        total_collies = sum(shipment.colli_no or 0 for shipment in shipment_list)
         return total_collies
     
     @staticmethod
     def calculate_total_weight(shipment_list):
-        total_weight = sum(shipment.weight for shipment in shipment_list)
+        total_weight = sum(shipment.weight or 0 for shipment in shipment_list)
         return total_weight
 
     #Creates a shipment with the from the PDF extracted data
@@ -238,17 +240,20 @@ class Shipment():
                             and 'GVZ' not in tokens
                             and 'EU-VZ' not in tokens
                             and 'EUVZ' not in tokens
+                            and 'ATA' not in tokens
                             and 'S-T1' not in tokens)
 
                 top_group    = [s for s in self.shipment_list if is_et1_durchgehend(s)]
                 bottom_group = [s for s in self.shipment_list if not is_et1_durchgehend(s)]
 
                 def write_shipment(row, shipment):
-                    # Excel-Daten kommen aus dem T1-Transitdokument.
+                    # Colli-Typ und Warenbezeichnung: T1-Daten bevorzugt, Abmeldeliste als Fallback
+                    colli_type_val = getattr(shipment, 't1_colli_type', None) or getattr(shipment, 'colli_type', '') or ''
+                    goods_desc_val = getattr(shipment, 't1_goods_description', None) or getattr(shipment, 'content', '') or ''
                     ws.cell(row=row, column=start_col,     value=getattr(shipment, 'mrn', None) or '')
                     ws.cell(row=row, column=start_col + 1, value=getattr(shipment, 't1_colli_no', None))
-                    ws.cell(row=row, column=start_col + 2, value=getattr(shipment, 't1_colli_type', None) or '')
-                    ws.cell(row=row, column=start_col + 3, value=getattr(shipment, 't1_goods_description', None) or '')
+                    ws.cell(row=row, column=start_col + 2, value=colli_type_val)
+                    ws.cell(row=row, column=start_col + 3, value=goods_desc_val)
                     ws.cell(row=row, column=start_col + 4, value=getattr(shipment, 't1_weight', None))
 
                 current_row = start_row
@@ -270,15 +275,38 @@ class Shipment():
                     anummer_row = current_row                                  # N+4 (wird nach unten befüllt)
                     current_row += 3                                           # N+5, N+6 leer → current = N+7
 
-                # UNTEN: S-T1 / Grenzverzollung
-                for shipment in bottom_group:
+                # S-T1-Gruppe = bottom_group ohne E-T1; E-T1 Grenze = mit E-T1
+                s_t1_group = [s for s in bottom_group if 'E-T1' not in s.customs_handling]
+                other_bottom = [s for s in bottom_group if 'E-T1' in s.customs_handling]
+                bottom_rows_written = 0
+                st1_rep = next((s for s in s_t1_group if getattr(s, 'mrn', None)), None)
+                if st1_rep:
+                    ws.cell(row=current_row, column=start_col,     value=getattr(st1_rep, 'mrn', None) or '')
+                    ws.cell(row=current_row, column=start_col + 1, value=getattr(st1_rep, 't1_colli_no', None))
+                    ws.cell(row=current_row, column=start_col + 2, value=st1_rep.colli_type or 'PK')
+                    ws.cell(row=current_row, column=start_col + 3, value='Stückgut')
+                    ws.cell(row=current_row, column=start_col + 4, value=getattr(st1_rep, 't1_weight', None))
+                    current_row += 1
+                    bottom_rows_written += 1
+                elif s_t1_group:
+                    ws.cell(row=current_row, column=start_col, value='S-T1 fehlt')
+                    current_row += 1
+                    bottom_rows_written += 1
+                seen_mrns_excel = set()
+                for shipment in other_bottom:
+                    mrn = getattr(shipment, 'mrn', None)
+                    if mrn and mrn in seen_mrns_excel:
+                        continue
+                    if mrn:
+                        seen_mrns_excel.add(mrn)
                     write_shipment(current_row, shipment)
                     current_row += 1
+                    bottom_rows_written += 1
 
                 # A-Nummer Text mit tatsächlichen Excel-Zeilennummern
-                if anummer_row is not None and bottom_group:
+                if anummer_row is not None and bottom_rows_written:
                     bottom_start_row = anummer_row + 3 - 5  # Offset: Excel-Zeile relativ zur Vorlage
-                    bottom_end_row   = bottom_start_row + len(bottom_group) - 1
+                    bottom_end_row   = bottom_start_row + bottom_rows_written - 1
                     anummer_cell = ws.cell(row=anummer_row, column=start_col,
                                           value=f'A-Nummer siehe Zeile {bottom_start_row} bis {bottom_end_row}')
                     anummer_cell.font = blue_font

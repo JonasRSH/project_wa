@@ -201,92 +201,209 @@ def main(request):
                                         'user': request.user,
                                     }
                                 )
-                                t1_sendung_no = t1_result.get('Sendungsnummer')
-                                if t1_sendung_no:
-                                    ShipmentModel.objects.filter(
-                                        shipment_number=t1_sendung_no,
-                                        user=request.user
-                                    ).update(transit=transit_doc)
+                                # Sendungen via EXPO-Referenzen verknüpfen (E-T1 und S-T1)
+                                expo_nos = t1_result.get('Sendungsnummern', [])
+                                if expo_nos:
+                                    for expo_no in expo_nos:
+                                        ShipmentModel.objects.filter(
+                                            shipment_number=expo_no,
+                                            user=request.user
+                                        ).update(transit=transit_doc)
+                                else:
+                                    t1_sendung_no = t1_result.get('Sendungsnummer')
+                                    if t1_sendung_no:
+                                        ShipmentModel.objects.filter(
+                                            shipment_number=t1_sendung_no,
+                                            user=request.user
+                                        ).update(transit=transit_doc)
                             except Exception:
                                 continue
 
-                        # Sammel-T1: Wenn genau ein unzugeordnetes Transitdokument existiert,
-                        # ordnen wir es allen S-T1-Sendungen ohne Transit zu.
-                        s_t1_numbers = {
-                            str(s.shipment_no).strip()
-                            for s in shipment_list
-                            if s.shipment_no and 'S-T1' in s.customs_handling
-                        }
-                        unassigned_transits = TransitDocument.objects.filter(user=request.user).exclude(
-                            shipment__user=request.user
-                        )
-                        if s_t1_numbers and unassigned_transits.count() == 1:
-                            shared_transit = unassigned_transits.first()
-                            ShipmentModel.objects.filter(
-                                shipment_number__in=s_t1_numbers,
-                                user=request.user,
-                                transit__isnull=True,
-                            ).update(transit=shared_transit)
+                        # --- Report (HTML) ---
+                        # Hilfsfunktionen für farbige Report-Zeilen
+                        def _rh(title):
+                            return (f'<div style="font-weight:bold;color:#fff;background:#0070c0;'
+                                    f'padding:4px 10px;border-radius:3px;margin:10px 0 3px;">'
+                                    f'{title}</div>')
+                        def _rok(msg):
+                            return f'<div style="padding:2px 10px;color:#198754;">&#10003;&nbsp;{msg}</div>'
+                        def _rerr(msg):
+                            return (f'<div style="padding:2px 10px;color:#dc3545;'
+                                    f'font-weight:bold;">&#10007;&nbsp;{msg}</div>')
+                        def _rwarn(msg):
+                            return (f'<div style="padding:2px 10px;color:#e07b00;'
+                                    f'font-weight:bold;">&#9888;&nbsp;{msg}</div>')
+                        def _rdet(label, val):
+                            return (f'<div style="padding:1px 10px 1px 28px;color:#6c757d;">'
+                                    f'<span style="display:inline-block;min-width:80px;">{label}</span>'
+                                    f'{val}</div>')
 
-                        # --- Report ---
-                        report_lines = []
+                        report_parts = []
+
+                        def is_et1_durchgehend(s):
+                            tokens = s.customs_handling
+                            return ('E-T1' in tokens
+                                    and 'GVZ' not in tokens
+                                    and 'EU-VZ' not in tokens
+                                    and 'EUVZ' not in tokens
+                                    and 'ATA' not in tokens
+                                    and 'S-T1' not in tokens)
 
                         # 1. Zollabfertigung
+                        customs_parts = []
                         for shipment in shipment_list:
                             customs_text = ' '.join(str(x) for x in shipment.customs_handling)
                             if 'Missing customs handling' in customs_text:
                                 line_no = str(shipment.position).strip() or '-'
                                 s_no = str(shipment.shipment_no).strip() or '-'
-                                report_lines.append(f'[Customs Handling fehlt]    Pos. {line_no} / Sendung {s_no}')
+                                customs_parts.append(_rwarn(f'Pos.&nbsp;{line_no}&nbsp;&nbsp;|&nbsp;&nbsp;Sendung&nbsp;{s_no}'))
+                        if customs_parts:
+                            report_parts.append(_rh('&#9888; ZOLLABFERTIGUNG PRÜFEN'))
+                            report_parts.extend(customs_parts)
 
-                        # 2. T1-Status pro Sendung
-                        for s in shipment_list:
+                        # 2. E-T1 Sendungen
+                        et1_durchgehend_list = [s for s in shipment_list if is_et1_durchgehend(s)]
+                        et1_grenze_list      = [s for s in shipment_list
+                                                if 'E-T1' in s.customs_handling
+                                                and not is_et1_durchgehend(s)]
+                        et1_shipments = et1_durchgehend_list + et1_grenze_list
+                        et1_parts = []
+                        for s in et1_shipments:
                             s_no = str(s.shipment_no).strip() if s.shipment_no else None
                             if not s_no:
                                 continue
+                            absender = s.exporter or ''
                             try:
                                 db_s = ShipmentModel.objects.get(shipment_number=s_no, user=request.user)
-                                transit = db_s.transit
-                                if transit is None:
-                                    report_lines.append(f'[T1 fehlt]      Sendung {s_no}')
+                                if db_s.transit is None:
+                                    et1_parts.append(_rerr(f'T1 fehlt&nbsp;&nbsp;{s_no}&nbsp;&nbsp;|&nbsp;&nbsp;{absender}'))
                                 else:
-                                    colli_sum = db_s.collis.aggregate(total=Sum('quantity'))['total'] or 0
-                                    if colli_sum != transit.t_colli_quantity:
-                                        report_lines.append(
-                                            f'[T1 Differenz] Sendung {s_no}: Packstücke — Liste: {colli_sum}, T1: {transit.t_colli_quantity}'
-                                        )
-                                    weight_sum = db_s.collis.aggregate(total=Sum('weight'))['total'] or 0
-                                    if round(weight_sum, 3) != round(transit.t_weight or 0, 3):
-                                        report_lines.append(
-                                            f'[T1 Differenz] Sendung {s_no}: Gewicht — Liste: {weight_sum:.3f} kg, T1: {transit.t_weight} kg'
-                                        )
+                                    t1_colli = db_s.transit.t_colli_quantity
+                                    t1_w = db_s.transit.t_weight
+                                    diffs = []
+                                    if t1_colli is not None and t1_colli != (s.colli_no or 0):
+                                        delta = t1_colli - (s.colli_no or 0)
+                                        diffs.append(_rdet('Colli:',
+                                            f'<span style="color:#dc3545;">T1={t1_colli}&nbsp;/&nbsp;'
+                                            f'Liste={s.colli_no}&nbsp;&nbsp;'
+                                            f'<b>(&Delta;&nbsp;{delta:+d})</b></span>'))
+                                    if t1_w is not None and s.weight:
+                                        delta_w = round(t1_w - s.weight, 3)
+                                        if abs(delta_w) > 0.01:
+                                            diffs.append(_rdet('Gewicht:',
+                                                f'<span style="color:#dc3545;">T1={t1_w:.3f}&nbsp;kg&nbsp;/&nbsp;'
+                                                f'Liste={s.weight}&nbsp;kg&nbsp;&nbsp;'
+                                                f'<b>(&Delta;&nbsp;{delta_w:+.3f}&nbsp;kg)</b></span>'))
+                                    if diffs:
+                                        et1_parts.append(_rwarn(f'Differenz&nbsp;&nbsp;{s_no}&nbsp;&nbsp;|&nbsp;&nbsp;{absender}'))
+                                        et1_parts.extend(diffs)
                             except ShipmentModel.DoesNotExist:
                                 pass
+                        if et1_shipments:
+                            n_total = len(et1_shipments)
+                            n_durch = len(et1_durchgehend_list)
+                            n_grenz = len(et1_grenze_list)
+                            sub = ''
+                            if n_durch and n_grenz:
+                                sub = f'&nbsp;&nbsp;&mdash;&nbsp;&nbsp;{n_durch} Durchgehend&nbsp;&nbsp;|&nbsp;&nbsp;{n_grenz} Grenzverzollung'
+                            elif n_durch:
+                                sub = f'&nbsp;&nbsp;&mdash;&nbsp;&nbsp;{n_durch} Durchgehend'
+                            elif n_grenz:
+                                sub = f'&nbsp;&nbsp;&mdash;&nbsp;&nbsp;{n_grenz} Grenzverzollung'
+                            report_parts.append(_rh(f'E-T1 SENDUNGEN ({n_total}){sub}'))
+                            if et1_parts:
+                                report_parts.extend(et1_parts)
+                            else:
+                                report_parts.append(_rok('Alle E-T1 Dokumente vollständig und korrekt'))
 
-                        # 3. Überschüssige T1s (hochgeladen aber keine Sendung auf der Liste)
-                        for td in TransitDocument.objects.filter(user=request.user):
-                            if not ShipmentModel.objects.filter(transit=td, user=request.user).exists():
-                                report_lines.append(f'[T1 Überzählig]  MRN {td.t_number} — keine Sendung auf der Liste')
+                        # 2b. S-T1 Gruppenprüfung
+                        _ST1_TOKENS = frozenset({'GVZ', 'EU-VZ', 'EUVZ'})
+                        s_t1_all = [s for s in shipment_list
+                                    if 'E-T1' not in s.customs_handling
+                                    and _ST1_TOKENS.intersection(s.customs_handling)]
+                        if s_t1_all:
+                            s_t1_total  = len(s_t1_all)
+                            s_t1_linked = sum(
+                                1 for s in s_t1_all
+                                if (sno := str(s.shipment_no).strip() if s.shipment_no else None)
+                                and ShipmentModel.objects.filter(
+                                    shipment_number=sno, user=request.user, transit__isnull=False
+                                ).exists()
+                            )
+                            report_parts.append(_rh(f'S-T1 GRUPPE ({s_t1_total} Sendungen)'))
+                            if s_t1_linked == s_t1_total:
+                                report_parts.append(_rok(f'{s_t1_total}/{s_t1_total} Sendungen auf S-T1 verknüpft'))
+                            else:
+                                missing = s_t1_total - s_t1_linked
+                                report_parts.append(_rerr(f'{s_t1_linked}/{s_t1_total} Sendungen auf S-T1 &mdash; {missing} fehlen'))
+                            st1_transit = next(
+                                (ShipmentModel.objects.filter(
+                                    shipment_number=str(s.shipment_no).strip(), user=request.user
+                                ).select_related('transit').first().transit
+                                 for s in s_t1_all
+                                 if s.shipment_no
+                                 and ShipmentModel.objects.filter(
+                                     shipment_number=str(s.shipment_no).strip(),
+                                     user=request.user, transit__isnull=False
+                                 ).exists()),
+                                None
+                            )
+                            if st1_transit:
+                                abm_colli  = sum(s.colli_no or 0 for s in s_t1_all)
+                                abm_weight = sum(s.weight   or 0 for s in s_t1_all)
+                                tc, tw = st1_transit.t_colli_quantity, st1_transit.t_weight
+                                if tc is not None:
+                                    if tc != abm_colli:
+                                        delta = tc - abm_colli
+                                        report_parts.append(_rdet('Colli:',
+                                            f'<span style="color:#dc3545;">T1={tc}&nbsp;/&nbsp;'
+                                            f'Liste={abm_colli}&nbsp;&nbsp;<b>(&Delta;&nbsp;{delta:+d})</b></span>'))
+                                    else:
+                                        report_parts.append(_rdet('Colli:', f'{tc} &#10003;'))
+                                if tw is not None and abm_weight:
+                                    delta_w = round(tw - abm_weight, 3)
+                                    if abs(delta_w) > 0.01:
+                                        report_parts.append(_rdet('Gewicht:',
+                                            f'<span style="color:#dc3545;">T1={tw:.3f}&nbsp;kg&nbsp;/&nbsp;'
+                                            f'Liste={abm_weight}&nbsp;kg&nbsp;&nbsp;<b>(&Delta;&nbsp;{delta_w:+.3f}&nbsp;kg)</b></span>'))
+                                    else:
+                                        report_parts.append(_rdet('Gewicht:', f'{tw:.3f}&nbsp;kg &#10003;'))
 
-                        # 4. Gesamtdifferenz Liste vs. alle T1-Dokumente
+                        # 3. Gesamtsumme
                         liste_collis  = sum(s.colli_no for s in shipment_list if s.colli_no)
                         liste_gewicht = sum(s.weight   for s in shipment_list if s.weight)
                         t1_collis  = TransitDocument.objects.filter(user=request.user).aggregate(total=Sum('t_colli_quantity'))['total'] or 0
                         t1_gewicht = TransitDocument.objects.filter(user=request.user).aggregate(total=Sum('t_weight'))['total'] or 0
-                        diff_collis  = liste_collis - t1_collis
+                        diff_collis  = liste_collis  - t1_collis
                         diff_gewicht = round(liste_gewicht - t1_gewicht, 3)
-                        report_lines.append('─' * 50)
-                        report_lines.append(f'[Summe Abmeldeliste]   Packstücke: {liste_collis}  |  Gewicht: {liste_gewicht:.3f} kg')
-                        report_lines.append(f'[Summe aller T1]      Packstücke: {t1_collis}  |  Gewicht: {t1_gewicht:.3f} kg')
+                        report_parts.append(_rh('GESAMTSUMME'))
+                        report_parts.append(
+                            f'<table style="width:100%;font-size:0.83rem;border-collapse:collapse;margin:2px 0;">'
+                            f'<tr style="border-bottom:1px solid #dee2e6;">'
+                            f'<td style="padding:3px 10px;color:#6c757d;">Abmeldeliste</td>'
+                            f'<td style="padding:3px 10px;text-align:right;">{liste_collis}&nbsp;Packstücke</td>'
+                            f'<td style="padding:3px 10px;text-align:right;">{liste_gewicht:.3f}&nbsp;kg</td></tr>'
+                            f'<tr style="border-bottom:1px solid #dee2e6;">'
+                            f'<td style="padding:3px 10px;color:#6c757d;">T1&nbsp;Dokumente</td>'
+                            f'<td style="padding:3px 10px;text-align:right;">{t1_collis}&nbsp;Packstücke</td>'
+                            f'<td style="padding:3px 10px;text-align:right;">{t1_gewicht:.3f}&nbsp;kg</td></tr>'
+                        )
                         if diff_collis != 0 or diff_gewicht != 0:
-                            report_lines.append(f'[DIFFERENZ]     Packstücke: {diff_collis:+d}  |  Gewicht: {diff_gewicht:+.3f} kg')
+                            colli_cell = (f'<span style="color:#dc3545;font-weight:bold;">&Delta;&nbsp;{diff_collis:+d}&nbsp;Packstücke</span>')
+                            weight_cell = (f'<span style="color:#dc3545;font-weight:bold;">&Delta;&nbsp;{diff_gewicht:+.3f}&nbsp;kg</span>')
+                            report_parts.append(
+                                f'<tr><td style="padding:3px 10px;color:#6c757d;">Differenz</td>'
+                                f'<td style="padding:3px 10px;text-align:right;">{colli_cell}</td>'
+                                f'<td style="padding:3px 10px;text-align:right;">{weight_cell}</td></tr>'
+                                f'</table>'
+                            )
                         else:
-                            report_lines.append('[DIFFERENZ]     ✓ Packstücke und Gewicht stimmen überein')
+                            report_parts.append(
+                                f'<tr><td colspan="3" style="padding:3px 10px;color:#198754;">'
+                                f'&#10003;&nbsp;Packstücke und Gewicht stimmen überein</td></tr></table>'
+                            )
 
-                        if report_lines:
-                            report = '\n'.join(report_lines)
-                        else:
-                            report = '✓ Alles in Ordnung – keine Abweichungen gefunden.'
+                        report = ''.join(report_parts) if report_parts else _rok('Alles in Ordnung &ndash; keine Abweichungen gefunden.')
 
                         shipment_list[0].shipment_list = shipment_list
 
@@ -325,14 +442,6 @@ def main(request):
                         request.session['excel_data'] = excel_bytes
                         request.session['excel_filename'] = filename
                         # Vorschau generieren (gleiche Sortierung wie Excel)
-                        def is_et1_durchgehend(s):
-                            tokens = s.customs_handling
-                            return ('E-T1' in tokens
-                                    and 'GVZ' not in tokens
-                                    and 'EU-VZ' not in tokens
-                                    and 'EUVZ' not in tokens
-                                    and 'S-T1' not in tokens)
-
                         top_group    = [s for s in shipment_list if is_et1_durchgehend(s)]
                         bottom_group = [s for s in shipment_list if not is_et1_durchgehend(s)]
 
@@ -362,10 +471,10 @@ def main(request):
                             return {
                                 'Gruppe': gruppe,
                                 'Sendungsnummer': sno_display,
-                                'Exporteur': '',
+                                'Exporteur': s.exporter if s.exporter else '',
                                 'Colli': t1_colli if t1_colli is not None else '',
-                                'Typ': t1_colli_type if t1_colli_type else '',
-                                'Inhalt': t1_goods_description if t1_goods_description else '',
+                                'Typ': t1_colli_type or (s.colli_type if s.colli_type else 'PK'),
+                                'Inhalt': t1_goods_description if t1_goods_description else (s.content or ''),
                                 'Gewicht': t1_weight if t1_weight is not None else '',
                                 'Zollabfertigung': customs_display,
                             }
@@ -377,9 +486,39 @@ def main(request):
                                          'Exporteur': '', 'Colli': '', 'Typ': '', 'Inhalt': '', 'Gewicht': '', 'Zollabfertigung': ''})
                             rows.append({'Gruppe': '---', 'Sendungsnummer': 'A-Nummer (Grenzverzollung)',
                                          'Exporteur': '', 'Colli': '', 'Typ': '', 'Inhalt': '', 'Gewicht': '', 'Zollabfertigung': ''})
-                        rows += [shipment_to_row(s, 'S-T1 / Grenze') for s in bottom_group]
+                        # S-T1-Gruppe = bottom_group ohne E-T1 (GVZ, EU-VZ, VZ AUF …) → eine Zeile
+                        # E-T1 Grenze = bottom_group mit E-T1 (eigenes Transitdokument) → einzeln
+                        s_t1_group = [s for s in bottom_group if 'E-T1' not in s.customs_handling]
+                        other_bottom = [s for s in bottom_group if 'E-T1' in s.customs_handling]
+                        st1_rep = next((s for s in s_t1_group if getattr(s, 'mrn', None)), None)
+                        if st1_rep:
+                            rows.append({
+                                'Gruppe': 'S-T1 / Grenze',
+                                'Sendungsnummer': st1_rep.mrn,
+                                'Exporteur': 'Diverse',
+                                'Colli': getattr(st1_rep, 't1_colli_no', '') or '',
+                                'Typ': st1_rep.colli_type if st1_rep.colli_type else 'PK',
+                                'Inhalt': 'Stückgut',
+                                'Gewicht': getattr(st1_rep, 't1_weight', '') or '',
+                                'Zollabfertigung': 'S-T1',
+                            })
+                        elif s_t1_group:
+                            rows.append({
+                                'Gruppe': 'S-T1 / Grenze',
+                                'Sendungsnummer': '<span class="wa-preview-warning">S-T1 fehlt</span>',
+                                'Exporteur': '', 'Colli': '', 'Typ': '', 'Inhalt': '', 'Gewicht': '',
+                                'Zollabfertigung': '<span class="wa-preview-warning">S-T1 nicht hochgeladen</span>',
+                            })
+                        seen_mrns = set()
+                        for s in other_bottom:
+                            mrn = getattr(s, 'mrn', None)
+                            if mrn and mrn in seen_mrns:
+                                continue
+                            if mrn:
+                                seen_mrns.add(mrn)
+                            rows.append(shipment_to_row(s, 'E-T1 Grenze'))
 
-                        df = pd.DataFrame(rows)
+                        df = pd.DataFrame(rows).drop(columns=['Gruppe'])
                         # escape=False damit die HTML-Spans gerendert werden
                         data = df.to_html(classes='table table-striped a4-size', index=False, escape=False)
                         sum_collies = Shipment.calculate_total_collies(shipment_list)

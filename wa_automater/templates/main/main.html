@@ -188,9 +188,9 @@
                         <!-- Report-Feld -->
                         <div class="mt-3">
                             <label for="wa-report" class="font-weight-bold">Report</label>
-                            <div id="wa-report" style="height:420px; overflow:auto; border:1px solid #ccc; background:#f8f9fa; padding:10px; border-radius:4px;">
+                            <div id="wa-report" style="height:420px; overflow:auto; border:1px solid #ccc; background:#f8f9fa; padding:10px; border-radius:4px; font-size:0.83rem;">
                                 {% if report %}
-                                    <pre style="margin:0;">{{ report|safe }}</pre>
+                                    {{ report|safe }}
                                 {% else %}
                                     <span class="text-muted">Noch kein Report vorhanden.</span>
                                 {% endif %}
@@ -216,17 +216,13 @@
                                     <div class="summary">{{ summary }}</div>
                                 {% endif %}
                             </div>
-                            {% if excel_filename %}
-                                <a href="{% url 'download_excel' %}?file={{ excel_filename }}" class="btn btn-success btn-sm">
-                                    WA herunterladen
-                                </a>
-                            {% endif %}
                         </div>
                         {% if excel_filename %}
-                        <div class="mt-2 text-right">
-                            <form method="post" action="{% url 'clear_uploaded_data' %}" onsubmit="return confirm('Alle Upload- und Transitdaten wirklich löschen?');">
+                        <div class="mt-2 d-flex gap-3">
+                            <a href="{% url 'download_excel' %}?file={{ excel_filename }}" class="btn btn-success btn-sm flex-fill">WA herunterladen</a>
+                            <form method="post" action="{% url 'clear_uploaded_data' %}" onsubmit="return confirm('Alle Upload- und Transitdaten wirklich löschen?');" class="flex-fill">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm">Alle Daten löschen</button>
+                                <button type="submit" class="btn btn-danger btn-sm w-100">Alle Daten löschen</button>
                             </form>
                         </div>
                         {% endif %}
