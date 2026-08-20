@@ -14,6 +14,15 @@ env/
 .env
 .env.pi
 
+# Lokale Pi-Overrides fuer Docker Compose (nicht versionieren)
+docker-compose.pi.local.yml
+docker-compose.yml
+nginx.conf
+nginx.prod.conf
+
+# Lokale Docker-Builddateien (nur wirksam, wenn nicht von Git getrackt)
+Dockerfile
+
 # Beispiel- und Test-PDFs nicht versionieren
 /Python_Back_End/loading_list_check/*.pdf
 /Python_Back_End/t1_reader/*.pdf

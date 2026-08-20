@@ -8,8 +8,7 @@ Die aktuelle Implementierung läuft als Docker-Container auf einem privaten Serv
 
 Die Anwendung dient zur automatisierten Erstellung eines Warenausweises (WA) aus PDF-Dokumenten. Der aktuelle Ansatz liest Daten aus PDF-Dateien wie Transitdokumenten (T1) und Ladelisten zur Weiterverarbeitung aus. Die Anwendung kann mit Transitdokumenten und einer Abmeldeliste im PDF-Format ausprobiert werden.
 
-Es handelt sich um keine fertige, einsatzbereite Version, sondern um eine Test- und Entwicklungsanwendung. Aktuell werden keine Daten in einer Datenbank gespeichert. Eine mögliche Weiterentwicklung wäre die Anbindung an eine Datenbank für Sendungsdaten sowie an eine Verzollungssoftware oder eine CH-Zoll-API für Dokumentendaten.
-Eine eigene Datenbank mit SQL zum Datenabgleich der verschiedenen Dokumente ist vorbereitet.
+Es handelt sich um keine fertige, einsatzbereite Version, sondern um eine Test- und Entwicklungsanwendung. Sendungsdaten, Collis und Transitdokumente werden in einer SQLite-Datenbank gespeichert und automatisch abgeglichen. Eine mögliche Weiterentwicklung wäre die direkte Anbindung an eine Verzollungssoftware oder eine CH-Zoll-API für Dokumentendaten.
 
 ## Zentrale Vorteile
 
@@ -31,15 +30,10 @@ Diese Architektur macht die Anwendung zu einer zukunftssicheren, flexibel einset
 
 - Upload einer Abmeldeliste als PDF
 - Extraktion und Aufbereitung der Sendungsdaten
+- Upload und automatische Auswertung von T1-Transitdokumenten (MRN, Packstücke, Gewicht, Zollstelle)
+- Automatischer Datenbankabgleich T1 ↔ Abmeldeliste mit Fehlerreport (Mengen-/Gewichtsabweichungen)
 - Anzeige einer Vorschau in der Weboberfläche
 - Berechnung von Summen (Collies und Gewicht)
-- Erzeugung einer Excel-Datei für den Warenausweis
+- Erzeugung einer Excel-Datei für den Warenausweis mit Vorschau
 - Login-geschützte Anwendung mit Admin-Bereich
-
-## Projektstruktur
-
-- `wa_automater/`: Django-Projekt (Settings, URLs, Apps, Templates, Static)
-- `Python_Back_End/`: PDF-Parsing und fachliche Logik
-- `requirements.txt`: Python-Abhängigkeiten
-- `deploy/`: Beispielkonfigurationen für Deployment und Reverse Proxy
-
+- Automatisierte Tests (pytest für PDF-Parser, Django TestCase für Modelle und Abgleichlogik)

@@ -3,6 +3,7 @@ import os
 import re
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.styles import Font
 from datetime import date
 from io import BytesIO
 
@@ -179,7 +180,7 @@ class Shipment():
     def create_excel(self, filename=None, abfahrt_name=None, datum=None, kennzeichen=None, anhaenger=None, zollamt_abgang=None, zollamt_grenz=None):
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         # Vorlage immer gleich, nie überschreiben
-        vorlage = os.path.join(base_dir, 'Python_Back_End', 'loading_list_check', 'warenausweis.xlsx')
+        vorlage = os.path.join(base_dir, 'wa_automater', 'main', 'resources', 'warenausweis.xlsx')
         if abfahrt_name is None:
             abfahrt_name = ''
         if datum is None:
@@ -229,13 +230,58 @@ class Shipment():
                         merges_to_remove.append(merged_range)
                 for merged_range in merges_to_remove:
                     ws.unmerge_cells(str(merged_range))
-                for index, shipment in enumerate(self.shipment_list):
-                    row = start_row + index
-                    ws.cell(row=row, column=start_col, value=shipment.shipment_no)
-                    ws.cell(row=row, column=start_col + 1, value=shipment.colli_no)
-                    ws.cell(row=row, column=start_col + 2, value=shipment.colli_type)
-                    ws.cell(row=row, column=start_col + 3, value=shipment.content)
-                    ws.cell(row=row, column=start_col + 4, value=shipment.weight)
+
+                # Sortierung: OBEN = E-T1 durchgehend, UNTEN = S-T1 / Grenzverzollung
+                def is_et1_durchgehend(s):
+                    tokens = s.customs_handling
+                    return ('E-T1' in tokens
+                            and 'GVZ' not in tokens
+                            and 'EU-VZ' not in tokens
+                            and 'EUVZ' not in tokens
+                            and 'S-T1' not in tokens)
+
+                top_group    = [s for s in self.shipment_list if is_et1_durchgehend(s)]
+                bottom_group = [s for s in self.shipment_list if not is_et1_durchgehend(s)]
+
+                def write_shipment(row, shipment):
+                    # Excel-Daten kommen aus dem T1-Transitdokument.
+                    ws.cell(row=row, column=start_col,     value=getattr(shipment, 'mrn', None) or '')
+                    ws.cell(row=row, column=start_col + 1, value=getattr(shipment, 't1_colli_no', None))
+                    ws.cell(row=row, column=start_col + 2, value=getattr(shipment, 't1_colli_type', None) or '')
+                    ws.cell(row=row, column=start_col + 3, value=getattr(shipment, 't1_goods_description', None) or '')
+                    ws.cell(row=row, column=start_col + 4, value=getattr(shipment, 't1_weight', None))
+
+                current_row = start_row
+
+                # OBEN: E-T1 durchgehend
+                for shipment in top_group:
+                    write_shipment(current_row, shipment)
+                    current_row += 1
+
+                # Trennzeilen (nur wenn beide Gruppen belegt)
+                blue_font = Font(color='0070C0', bold=True)
+                anummer_row = None
+                if top_group and bottom_group:
+                    current_row += 2                                           # N+1, N+2 leer
+                    abgang_cell = ws.cell(row=current_row, column=start_col,
+                                         value=zollamt_abgang)                 # N+3
+                    abgang_cell.font = blue_font
+                    current_row += 1
+                    anummer_row = current_row                                  # N+4 (wird nach unten befüllt)
+                    current_row += 3                                           # N+5, N+6 leer → current = N+7
+
+                # UNTEN: S-T1 / Grenzverzollung
+                for shipment in bottom_group:
+                    write_shipment(current_row, shipment)
+                    current_row += 1
+
+                # A-Nummer Text mit tatsächlichen Excel-Zeilennummern
+                if anummer_row is not None and bottom_group:
+                    bottom_start_row = anummer_row + 3 - 5  # Offset: Excel-Zeile relativ zur Vorlage
+                    bottom_end_row   = bottom_start_row + len(bottom_group) - 1
+                    anummer_cell = ws.cell(row=anummer_row, column=start_col,
+                                          value=f'A-Nummer siehe Zeile {bottom_start_row} bis {bottom_end_row}')
+                    anummer_cell.font = blue_font
         buffer = BytesIO()
         wb.save(buffer)
         buffer.seek(0)
