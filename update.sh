@@ -33,6 +33,10 @@ fi
 
 $COMPOSE_CMD $COMPOSE_FILES up -d --build
 
+echo "Setze Dateirechte fuer persistente Volumes..."
+$COMPOSE_CMD $COMPOSE_FILES exec -T -u root website sh -c 'mkdir -p /app/data /app/staticfiles /app/media /app/static && chown -R app:app /app/data /app/staticfiles /app/media /app/static' || true
+$COMPOSE_CMD $COMPOSE_FILES exec -T -u root wa-generator sh -c 'mkdir -p /app/data /app/staticfiles /app/media && chown -R app:app /app/data /app/staticfiles /app/media' || true
+
 echo "Migrations und Static-Files fuer website..."
 $COMPOSE_CMD $COMPOSE_FILES exec -T website python manage.py migrate
 $COMPOSE_CMD $COMPOSE_FILES exec -T website python manage.py collectstatic --noinput

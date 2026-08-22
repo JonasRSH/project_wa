@@ -8,6 +8,13 @@ services:
       - DEBUG=${WEBSITE_DEBUG:-False}
       - DJANGO_SETTINGS_MODULE=jonas_website.settings
       - DATABASE_URL=${WEBSITE_DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - EMAIL_HOST=${EMAIL_HOST:-localhost}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@localhost}
     expose:
       - "8000"
     volumes:
