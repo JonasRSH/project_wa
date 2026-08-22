@@ -1,0 +1,73 @@
+services:
+  website:
+    build:
+      context: ./jonasrsh.github.io
+      dockerfile: Dockerfile
+    container_name: jonas_website_app
+    environment:
+      - DEBUG=${WEBSITE_DEBUG:-False}
+      - DJANGO_SETTINGS_MODULE=jonas_website.settings
+      - DATABASE_URL=${WEBSITE_DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+    expose:
+      - "8000"
+    volumes:
+      - website_data:/app/data
+      - staticfiles_website:/app/staticfiles
+      - media_website:/app/media
+    restart: unless-stopped
+    networks:
+      - main
+
+  wa-generator:
+    build:
+      context: ./wa_automater
+      dockerfile: ../Dockerfile.wa_generator
+    container_name: jonas_wa_generator
+    environment:
+      - DJANGO_DEBUG=${WA_DEBUG:-False}
+      - DJANGO_SECRET_KEY=${WA_SECRET_KEY:-change-me}
+      - DJANGO_ALLOWED_HOSTS=${WA_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DJANGO_CSRF_TRUSTED_ORIGINS=${WA_CSRF_TRUSTED_ORIGINS:-http://localhost}
+      - DJANGO_DB_PATH=/app/data/db.sqlite3
+    expose:
+      - "8000"
+    volumes:
+      - wa_data:/app/data
+      - staticfiles_wa:/app/staticfiles
+      - media_wa:/app/media
+    restart: unless-stopped
+    networks:
+      - main
+
+  nginx:
+    image: nginx:alpine
+    container_name: jonas_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.example.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx_website.conf:/etc/nginx/conf.d/website.conf:ro
+      - ./nginx_wa_generator.conf:/etc/nginx/conf.d/wa_generator.conf:ro
+      - staticfiles_website:/var/www/website/static:ro
+      - media_website:/var/www/website/media:ro
+      - staticfiles_wa:/var/www/wa/static:ro
+      - media_wa:/var/www/wa/media:ro
+    depends_on:
+      - website
+      - wa-generator
+    restart: unless-stopped
+    networks:
+      - main
+
+volumes:
+  website_data:
+  wa_data:
+  staticfiles_website:
+  media_website:
+  staticfiles_wa:
+  media_wa:
+
+networks:
+  main:
+    driver: bridge

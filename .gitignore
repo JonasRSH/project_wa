@@ -16,9 +16,12 @@ env/
 
 # Lokale Pi-Overrides fuer Docker Compose (nicht versionieren)
 docker-compose.pi.local.yml
-docker-compose.yml
 nginx.conf
 nginx.prod.conf
+docker-compose.local.yml
+nginx.local.conf
+nginx_website.local.conf
+nginx_wa_generator.local.conf
 
 # Lokale Docker-Builddateien (nur wirksam, wenn nicht von Git getrackt)
 Dockerfile
@@ -27,6 +30,8 @@ Dockerfile
 /Python_Back_End/loading_list_check/*.pdf
 /Python_Back_End/t1_reader/*.pdf
 /wa_automater/Python_Back_End/loading_list_check/*.pdf
+/wa_automater/Python_Back_End/t1_reader/temp_*.pdf
+/wa_automater/Python_Back_End/t1_reader/temp_*.xlsx
 
 # Datenbank und hochgeladene Dateien nicht versionieren
 wa_automater/db.sqlite3

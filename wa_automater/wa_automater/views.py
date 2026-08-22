@@ -1,6 +1,5 @@
 from django.shortcuts import render
 import sys
-import os
 import pathlib
 
 

@@ -1,0 +1,18 @@
+services:
+  # Beispiel fuer lokale, nicht versionierte Overrides
+  # Datei kopieren nach: docker-compose.local.yml
+
+  website:
+    environment:
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+
+  wa-generator:
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost
+
+  nginx:
+    ports:
+      - "8080:80"
