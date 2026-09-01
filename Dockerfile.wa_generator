@@ -19,14 +19,10 @@ COPY . /app
 
 RUN mkdir -p /app/staticfiles /app/media /app/data
 
-# Create entrypoint script that runs migrations at container startup
-RUN echo '#!/bin/bash' > /app/entrypoint.sh && \
-    echo 'set -e' >> /app/entrypoint.sh && \
-    echo 'python manage.py migrate --noinput' >> /app/entrypoint.sh && \
-    echo 'python manage.py collectstatic --noinput' >> /app/entrypoint.sh && \
-    echo 'exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 wa_automater.wsgi:application' >> /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
+# Run migrations and collect static files (during build)
+RUN python manage.py migrate --noinput
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "wa_automater.wsgi:application"]
