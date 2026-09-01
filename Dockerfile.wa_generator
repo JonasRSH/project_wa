@@ -5,6 +5,7 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=wa_automater.settings
+ENV PYTHONPATH="/app:/app/Python_Back_End/loading_list_check:/app/Python_Back_End/t1_reader"
 
 WORKDIR /app
 

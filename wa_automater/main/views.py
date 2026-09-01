@@ -7,9 +7,17 @@ import sys
 import pathlib
 from pypdf import PdfReader
 from django.contrib import messages
-BASE_DIR = pathlib.Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(BASE_DIR / 'Python_Back_End' / 'loading_list_check'))
-sys.path.append(str(BASE_DIR / 'Python_Back_End' / 't1_reader'))
+
+# Robust BASE_DIR calculation that works both locally and in Docker
+BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
+# If we're in wa_automater folder (local dev), go up one more level
+if BASE_DIR.name == 'wa_automater':
+    BASE_DIR = BASE_DIR.parent
+
+# Add Python_Back_End modules to path
+sys.path.insert(0, str(BASE_DIR / 'Python_Back_End' / 'loading_list_check'))
+sys.path.insert(0, str(BASE_DIR / 'Python_Back_End' / 't1_reader'))
+
 from CustomsList import Shipment
 from t1_reader import data_filter as t1_data_filter
 from .models import Abfahrt, Zollamt, Shipment as ShipmentModel, Colli, TransitDocument
