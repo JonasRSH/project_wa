@@ -24,13 +24,6 @@ COPY ./Python_Back_End /app/Python_Back_End
 
 RUN mkdir -p /app/staticfiles /app/media /app/data
 
-# Check Django setup
-RUN python manage.py check
-
-# Run migrations (try, but don't fail the build)
-RUN python manage.py migrate --noinput || true
-RUN python manage.py collectstatic --noinput || true
-
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "wa_automater.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "--log-level", "debug", "wa_automater.wsgi:application"]
