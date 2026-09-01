@@ -27,8 +27,8 @@ services:
 
   wa-generator:
     build:
-      context: ./wa_automater
-      dockerfile: ../Dockerfile.wa_generator
+      context: .
+      dockerfile: ./Dockerfile.wa_generator
     container_name: jonas_wa_generator
     environment:
       - DJANGO_DEBUG=${WA_DEBUG:-False}
